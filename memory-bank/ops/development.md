@@ -11,72 +11,51 @@ audience: humans_and_agents
 
 # Development Environment
 
-Документ пока не адаптирован под реальный runtime stack `zenrox`. До появления первого рабочего bootstrap path этот файл не задает каноничные команды проекта и не должен использоваться как источник реальных setup-инструкций.
+`zenrox` использует `Rails 8`, `PostgreSQL`, `RSpec` и `mise` для выбора Ruby toolchain. Команды ниже считаются текущим локальным baseline для backend-части проекта.
 
-После выбора стека и первого запуска приложения placeholders ниже должны быть заменены на реальные команды проекта.
+Если shell уже активирован на `ruby 3.4.8` через `mise`, префикс `mise exec ruby@3.4.8 --` можно опустить. Если нет, используй его явно, чтобы не зависеть от `rbenv` или другой внешней shell-конфигурации.
 
 ## Setup
 
-Перечисли минимальную подготовку среды.
+Минимальная подготовка среды:
 
 ```bash
-# Примеры:
-make setup
-./bin/setup
-npm install
-docker compose up -d
 direnv allow
-asdf install
-uv sync
-bundle install
-pnpm install
+mise install
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle config set path vendor/bundle
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle install
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rails db:prepare
 ```
 
 ## Daily Commands
 
-Зафиксируй canonical локальные команды, которые должен знать агент.
+Canonical локальные команды backend-разработки:
 
 ```bash
-# Примеры:
-make dev
-make test
-make lint
-docker compose up app db
-pnpm dev
-pytest
-bundle exec rspec
-go test ./...
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rails server
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec
+BUNDLE_APP_CONFIG=.bundle RUBOCOP_SERVER=false RUBOCOP_CACHE_ROOT=tmp/rubocop_cache mise exec ruby@3.4.8 -- bundle exec rubocop
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rails db:prepare
 ```
 
 ## Browser Testing
 
-Если проект имеет UI, опиши:
-
-- как определить локальный URL;
-- где брать порт или host;
-- можно ли искать их автоматически;
-- какие способы browser verification считаются canonical.
-
-Пример:
-
-1. Сначала читать `DEV_HOST` или `.env`.
-2. Если переменная не задана, использовать documented default.
-3. Не сканировать порты вручную без явного запроса пользователя.
+На текущем этапе у проекта нет browser-first UI. Первый MVP slice реализован как backend API, поэтому browser testing не является canonical verify path для `FT-001`.
 
 ## Database And Services
 
-Документируй только то, что действительно важно для локальной работы:
+Локальные зависимости и правила:
 
-- миграции;
-- пересоздание локальной БД;
-- обязательные сервисы;
-- seeded data;
-- known pitfalls для разработчиков и агентов.
+- Нужен локально доступный `PostgreSQL`.
+- Базовые имена БД: `zenrox_development`, `zenrox_test`.
+- Для создания и миграций использовать `bundle exec rails db:prepare`.
+- Пока не появятся новые seed-сценарии, `db/seeds.rb` не считается обязательной частью setup.
+- Для `FT-001` не требуются live AI keys, Telegram credentials и другие внешние интеграции.
 
 ## Adoption Checklist
 
-- [ ] указаны реальные setup-команды
-- [ ] указаны реальные test/lint commands
-- [ ] документирован способ определения локального URL
-- [ ] перечислены локальные зависимости и сервисы
-- [ ] удалены нерелевантные примеры
+- [x] указаны реальные setup-команды
+- [x] указаны реальные test/lint commands
+- [x] документирован способ определения локального URL
+- [x] перечислены локальные зависимости и сервисы
+- [x] удалены нерелевантные примеры

@@ -1,0 +1,22 @@
+{
+  "supported_corpus": [
+    "купить молоко",
+    "позвонить маме"
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "body": "купить молоко",
+      "status": "open",
+      "source_text": "купить молоко",
+      "operation_id": "cdc1422c-760f-46a9-94d2-9e774b4951f8"
+    },
+    {
+      "id": 2,
+      "body": "позвонить маме",
+      "status": "open",
+      "source_text": "позвонить маме",
+      "operation_id": "12975fd5-fd1d-4dcd-aec1-9c2237997f03"
+    }
+  ]
+}

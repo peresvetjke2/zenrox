@@ -8,7 +8,7 @@ derived_from:
   - ../../prd/PRD-001-first-capture-and-retrieval-loop.md
   - ../../use-cases/UC-006-single-task-text-capture.md
 status: active
-delivery_status: planned
+delivery_status: in_progress
 audience: humans_and_agents
 must_not_define:
   - implementation_sequence
