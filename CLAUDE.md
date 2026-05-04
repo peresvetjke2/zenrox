@@ -1,4 +1,7 @@
-# Agent Entry Point
+# Claude Code Instructions
+
+Следуй `AGENTS.md` как общей policy entrypoint для репозитория.
+Если есть конфликт между локальными эвристиками агента и canonical-документами в `memory-bank`, приоритет у `memory-bank`.
 
 Отвечай по-русски, если пользователь пишет по-русски.
 
