@@ -11,7 +11,9 @@ audience: humans_and_agents
 
 # Stages And Non-Local Environments
 
-Опиши здесь не только production, но и stage, beta, preview, sandbox или другие non-local окружения, если они существуют.
+На текущем этапе для `zenrox` non-local environments еще не зафиксированы. До появления staging, preview или production-like среды этот документ не должен трактоваться как описание существующих окружений.
+
+Когда такие окружения появятся, здесь нужно описать не только production, но и stage, beta, preview, sandbox или другие non-local среды, если они существуют.
 
 ## Environment Inventory
 

@@ -11,6 +11,8 @@ audience: humans_and_agents
 
 # Release And Deployment
 
+Документ пока не адаптирован под реальный release path `zenrox`. До появления первого повторяемого deploy/release flow примеры ниже остаются шаблонными и не считаются каноничными командами проекта.
+
 ## Release Flow
 
 Опиши реальный порядок шагов для проекта.

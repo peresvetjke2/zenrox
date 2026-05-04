@@ -25,27 +25,20 @@ audience: humans_and_agents
 
 ## Project Adaptation
 
-После копирования шаблона заполни project-specific часть testing stack:
+Проект находится на ранней стадии: product contract уже формируется, но точный runtime stack, test framework и CI pipeline еще не зафиксированы. До выбора стека этот документ задает policy-level правила, а не конкретный набор команд.
 
-- основной test framework;
-- стратегия тестовых данных;
-- canonical local commands;
-- обязательные CI jobs;
-- допустимые manual-only исключения.
+На текущем этапе уже зафиксированы следующие project-specific ожидания:
 
-Пример формулировок:
-
-- **Framework:** `pytest`, `rspec`, `go test`, `vitest`
-- **Data:** fixtures / factories / builders / seeded test database
-- **Local commands:** `make test`, `npm test`, `bundle exec rspec`
-- **CI jobs:** `unit`, `integration`, `e2e`
+- deterministic behavior в parsing, status transitions, retrieval filters и reminder scheduling должен получать automated coverage, как только появляется реалистичный test harness;
+- сценарии, завязанные на live AI provider, Telegram delivery и реальное время доставки reminders, временно могут требовать manual verification, если automation еще не поднята;
+- отсутствие готовой CI не отменяет требования проектировать verify-path вместе с feature, если поведение уже достаточно стабильно для тестирования.
 
 ## Core Rules
 
 - Любое изменение поведения, которое можно проверить детерминированно, обязано получить automated regression coverage.
 - Любой новый или измененный contract обязан получить contract-level automated verification.
 - Любой bugfix обязан добавить regression test на воспроизводимый сценарий.
-- Required automated tests считаются закрывающими риск только если они проходят локально и в CI.
+- Required automated tests считаются закрывающими риск только если они проходят локально и, когда CI уже существует, не противоречат CI verify.
 - Manual-only verify допустим только как явное исключение и не заменяет automated coverage там, где automation реалистична.
 
 ## Ownership Split
@@ -59,7 +52,7 @@ Canonical lifecycle gates живут в [../flows/feature-flow.md](../flows/feat
 
 - к `Design Ready` `feature.md` уже фиксирует test case inventory;
 - к `Plan Ready` `implementation-plan.md` содержит `Test Strategy` с planned automated coverage и manual-only gaps;
-- к `Done` required tests добавлены, локальные команды зелёные и CI не противоречит локальному verify.
+- к `Done` required tests добавлены, доступные локальные команды зелёные и, когда CI уже существует, CI не противоречит локальному verify.
 
 ## Что Считается Sufficient Coverage
 
@@ -95,24 +88,18 @@ Canonical lifecycle gates живут в [../flows/feature-flow.md](../flows/feat
 
 ## Project-Specific Conventions
 
-Ниже должен появиться downstream-specific блок после адаптации шаблона. Зафиксируй:
+Минимальные downstream-specific правила для `zenrox` на текущем этапе:
 
-- куда добавлять новые тесты;
-- какой helper/setup pattern считается canonical;
-- как работать с базой, моками и fixtures;
-- какие команды обязан прогонять агент перед handoff.
-
-Пример:
-
-- новые unit tests живут в `tests/unit/` или `spec/`;
-- integration tests обязаны покрывать changed contract;
-- для дорогого setup использовать shared fixtures или builders;
-- текстовые assertions не дублируют hardcoded UI-копию, если проект уже владеет переводами централизованно.
+- изменения в rule-like поведении должны по возможности тестироваться без live AI и без реального reminder delivery.
+- если feature добавляет или меняет parsing contract, task status lifecycle, reminder semantics или retrieval filtering, автор изменения обязан явно указать, какая часть verify остается automated, а какая временно manual-only.
+- если deterministic automated coverage пока невозможна из-за отсутствия выбранного test harness, это должно быть записано как временный gap, а не замалчиваться.
+- manual verification для AI-assisted flows должна опираться на конкретные примеры пользовательских реплик, а не на абстрактную формулировку "проверено вручную".
+- перед handoff агент обязан честно перечислить, какие проверки реально были запущены и какие не были доступны в текущем состоянии проекта.
 
 ## Checklist For Template Adoption
 
-- [ ] указаны реальные local test commands
-- [ ] перечислены обязательные CI suites
-- [ ] задокументирован deterministic test data pattern
-- [ ] описаны manual-only exceptions
-- [ ] policy не противоречит [../flows/feature-flow.md](../flows/feature-flow.md)
+- [ ] указаны реальные local test commands после выбора стека
+- [ ] перечислены обязательные CI suites после появления CI pipeline
+- [ ] задокументирован deterministic test data pattern после выбора test harness
+- [x] описаны manual-only exceptions раннего этапа
+- [x] policy не противоречит [../flows/feature-flow.md](../flows/feature-flow.md)
