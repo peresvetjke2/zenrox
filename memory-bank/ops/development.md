@@ -40,7 +40,7 @@ BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rails db:prepare
 
 ## Browser Testing
 
-На текущем этапе у проекта нет browser-first UI. Первый MVP slice реализован как backend API, поэтому browser testing не является canonical verify path для `FT-001`.
+На текущем этапе у проекта нет browser-first UI. Первый MVP slice реализован как backend API, а phone-friendly surface для `FT-003` строится через Telegram webhook, поэтому browser testing не является canonical verify path ни для `FT-001`, ни для `FT-003`.
 
 ## Database And Services
 
@@ -51,6 +51,8 @@ BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rails db:prepare
 - Для создания и миграций использовать `bundle exec rails db:prepare`.
 - Пока не появятся новые seed-сценарии, `db/seeds.rb` не считается обязательной частью setup.
 - Для `FT-001` не требуются live AI keys, Telegram credentials и другие внешние интеграции.
+- Для локальной deterministic разработки `FT-003` live Telegram credentials тоже не требуются; request specs используют stubbed config/client.
+- Для ручного phone smoke-check `FT-003` нужны `ZENROX_TELEGRAM_BOT_TOKEN`, optional `ZENROX_TELEGRAM_SECRET_TOKEN`, optional `ZENROX_TELEGRAM_ALLOWED_CHAT_ID` и публично доступный webhook URL.
 
 ## Adoption Checklist
 

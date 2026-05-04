@@ -1,0 +1,21 @@
+{
+  "request": {
+    "update_id": 1002,
+    "message": {
+      "message_id": 9,
+      "chat": {
+        "id": 42,
+        "type": "private"
+      },
+      "text": "позвонить маме"
+    }
+  },
+  "task": {
+    "id": 4,
+    "body": "позвонить маме",
+    "status": "open",
+    "source_text": "позвонить маме",
+    "operation_id": "telegram:update:1002"
+  },
+  "delivery_attempts": 2
+}

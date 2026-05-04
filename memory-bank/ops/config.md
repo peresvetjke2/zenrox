@@ -44,15 +44,24 @@ audience: humans_and_agents
 
 ## Naming Convention For Env Vars
 
-Именование env vars пока не зафиксировано. До выбора runtime stack действуют только минимальные правила:
+Для текущего Rails baseline `zenrox` использует префикс `ZENROX_` для project-owned runtime settings.
 
-- naming scheme должна быть единой после появления первых реальных secrets и runtime settings;
 - AI, Telegram и reminder-related переменные должны быть распознаваемы по имени как принадлежащие к разным доменам;
-- после выбора naming convention этот документ должен стать canonical owner для префиксов и separators.
+- project-owned secrets и integration settings используют uppercase snake case;
+- после появления новых runtime-critical переменных они должны добавляться в соответствующий domain этого документа.
 
 ## Documenting Important Variables
 
-До выбора стека справочник конкретных переменных преждевременен. Вместо этого проект обязан документировать появление каждого нового runtime-critical конфигурационного контракта в одном из доменов:
+Текущий concrete env contract раннего этапа:
+
+| Variable | Domain | Required | Purpose |
+| --- | --- | --- | --- |
+| `ZENROX_DATABASE_PASSWORD` | Storage / persistence | no | Пароль для PostgreSQL, если локальная БД требует auth |
+| `ZENROX_TELEGRAM_BOT_TOKEN` | Telegram / client delivery | yes for live Telegram | Bot token для исходящей отправки reply и live webhook path |
+| `ZENROX_TELEGRAM_SECRET_TOKEN` | Telegram / client delivery | no | Secret header guard для `X-Telegram-Bot-Api-Secret-Token` |
+| `ZENROX_TELEGRAM_ALLOWED_CHAT_ID` | Telegram / client delivery | no | Optional allow-list для единственного приватного чата early-stage single-user setup |
+
+Если появляется новый runtime-critical конфигурационный контракт, он должен быть добавлен в один из доменов:
 
 - AI provider access
 - Telegram client delivery
@@ -70,7 +79,7 @@ audience: humans_and_agents
 ## Adoption Checklist
 
 - [x] описан schema-owner конфигурации на уровне ownership model
-- [ ] задокументирована naming convention после выбора runtime stack
+- [x] задокументирована naming convention после выбора runtime stack
 - [x] перечислены ключевые runtime/env domains
 - [x] описан secret handling
 - [x] удалены ссылки на несуществующие downstream-справочники

@@ -11,6 +11,9 @@ module Capture
     end
 
     def call
+      existing_task = Task.find_by(operation_id: operation_id)
+      return existing_task if existing_task
+
       task = Task.new(
         body: body,
         source_text: source_text,
@@ -20,7 +23,7 @@ module Capture
 
       return task if task.save
 
-      nil
+      Task.find_by(operation_id: operation_id)
     end
 
     private
