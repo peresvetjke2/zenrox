@@ -89,13 +89,25 @@ agents-install: agents agents-cli agents-skills
 # --- AI Agents ---
 
 agents:
-	@$(NPM) install -g @anthropic-ai/claude-code
-	@$(NPM) install -g @openai/codex
+	@if command -v claude >/dev/null 2>&1; then \
+		echo "Install claude-code - already exists"; \
+	else \
+		$(NPM) install -g @anthropic-ai/claude-code; \
+	fi
+	@if command -v codex >/dev/null 2>&1; then \
+		echo "Install codex - already exists"; \
+	else \
+		$(NPM) install -g @openai/codex; \
+	fi
 
 # --- CLI tools used by agents ---
 
 agents-cli:
-	@$(NPM) install -g @playwright/cli@latest
+	@if command -v playwright-cli >/dev/null 2>&1; then \
+		echo "Install playwright-cli - already exists"; \
+	else \
+		$(NPM) install -g @playwright/cli@latest; \
+	fi
 	@if command -v ccbox >/dev/null 2>&1; then \
 		echo "Install ccbox - already exists"; \
 	elif command -v brew >/dev/null 2>&1; then \
