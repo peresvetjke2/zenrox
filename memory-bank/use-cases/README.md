@@ -32,7 +32,11 @@ Use case нужен для сценария, который живет на ур
 
 | UC ID | Title | Status | Primary actor | Upstream PRD | Implemented by | Last updated |
 | --- | --- | --- | --- | --- | --- | --- |
-| `UC-XXX` | Название сценария | `draft` / `active` / `archived` | Кто запускает flow | `PRD-XXX` / `none` | `FT-XXX` | YYYY-MM-DD |
+| `UC-001` | Multi-intent Task Capture | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
+| `UC-002` | Agenda Query By Time And Context | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
+| `UC-003` | Ongoing Fact Tracking And Derived Answer | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
+| `UC-004` | Task Status Lifecycle | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
+| `UC-005` | Reminder Scheduling And Delivery | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
 
 ## Naming
 
