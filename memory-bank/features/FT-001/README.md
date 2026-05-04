@@ -21,3 +21,7 @@ audience: humans_and_agents
 - [`feature.md`](feature.md)
   Читать, когда нужно: открыть instantiated canonical feature-документ сразу после bootstrap нового feature package.
   Отвечает на вопрос: где находятся scope, design, verify, blockers и canonical IDs для этой фичи.
+
+- [`implementation-plan.md`](implementation-plan.md)
+  Читать, когда нужно: перейти от canonical feature intent к execution sequencing, discovery context, test strategy и checkpoints реализации.
+  Отвечает на вопрос: в каком порядке реализовывать FT-001 и какие условия verify должны быть доказаны по ходу выполнения.
