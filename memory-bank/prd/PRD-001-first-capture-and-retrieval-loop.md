@@ -5,7 +5,7 @@ doc_function: canonical
 purpose: "Фиксирует первую продуктовую инициативу zenrox: минимальный полезный цикл сохранения одной личной задачи и retrieval списка открытых задач."
 derived_from:
   - ../domain/problem.md
-status: draft
+status: active
 audience: humans_and_agents
 must_not_define:
   - implementation_sequence
@@ -105,5 +105,5 @@ must_not_define:
 | Feature | Why it exists | Status |
 | --- | --- | --- |
 | `FT-001` | Реализует минимальный capture slice этой инициативы: одна короткая текстовая реплика превращается в одну сохраненную `open`-задачу с коротким user-visible подтверждением. В этот же package входят rejection rules для неоднозначного или multi-intent ввода и запрет на ложное подтверждение при неуспешном сохранении, потому что это часть trust-контракта именно capture-path, а не отдельная downstream capability. | `done` |
-| `FT-002` | Реализует первый retrieval slice: на запрос `задачи` система возвращает полный список открытых задач, исключает `done` и не теряет задачи без срока выполнения. Этот package закрепляет product-инвариант `open = not done` для user-visible retrieval и подтверждает практическую полезность накопленной task-памяти. | `planned` |
+| `FT-002` | Реализует первый retrieval slice: на запрос `задачи` система возвращает полный список открытых задач, исключает `done` и не теряет задачи без срока выполнения. Этот package закрепляет product-инвариант `open = not done` для user-visible retrieval и подтверждает практическую полезность накопленной task-памяти. | `done` |
 | `FT-003` | Реализует первый phone-friendly delivery channel для уже существующего capture-path: Telegram webhook принимает текстовое сообщение из приватного чата, прокидывает его в общий backend contract и возвращает пользователю короткий ответ без дублирования задач при webhook retry. Эта фича закрывает delivery-gap между backend-only MVP и продуктовым требованием реального доступа с телефона. | `done` |

@@ -33,3 +33,6 @@ Runbook должен отвечать на вопросы:
 7. Escalation
 
 Если у проекта пока нет runbooks, каталог может содержать только этот индекс.
+
+- [`render-production-deploy.md`](render-production-deploy.md)
+  Читать, когда нужно: выполнить первый production deploy на Render, перепривязать Telegram webhook после ротации секретов или повторить live smoke-check.

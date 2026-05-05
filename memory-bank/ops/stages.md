@@ -17,7 +17,7 @@ audience: humans_and_agents
 
 | Environment | Purpose | Access path | Notes |
 | --- | --- | --- | --- |
-| `production` | Публичный MVP endpoint и live Telegram webhook | Render dashboard + public URL сервиса | Ранний single-user runtime |
+| `production` | Публичный MVP endpoint и live Telegram webhook | Render dashboard + `https://zenrox.onrender.com` | Ранний single-user runtime |
 
 ## Common Operations
 
@@ -28,6 +28,7 @@ curl -fsS https://<render-service>.onrender.com/up
 curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
   -d url=https://<render-service>.onrender.com/telegram/webhook \
   -d secret_token=<secret>
+curl -fsS https://api.telegram.org/bot<token>/getWebhookInfo
 ```
 
 Для каждой операции зафиксируй:
@@ -52,9 +53,9 @@ curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
 - smoke URL;
 - базовые operational dashboards.
 
-- Health-check: `GET /up` на публичном Render URL.
+- Health-check: `GET https://zenrox.onrender.com/up`.
 - Deployed version на раннем этапе отслеживается по latest successful deploy в Render dashboard, так как version/tagging flow еще не формализован.
-- Smoke URL для Telegram integration: `POST /telegram/webhook`.
+- Smoke URL для Telegram integration: `POST https://zenrox.onrender.com/telegram/webhook`.
 
 ## Logs And Observability
 
@@ -65,6 +66,8 @@ curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
 ## Test Data And Smoke Targets
 
 Для MVP используется один приватный Telegram chat, который при необходимости ограничивается через `ZENROX_TELEGRAM_ALLOWED_CHAT_ID`.
+
+Первичный live smoke-check выполнен `2026-05-05`: production deploy доступен по `https://zenrox.onrender.com`, webhook указывает на `/telegram/webhook`, capture и retrieval сценарии в Telegram подтверждены вручную.
 
 ## Adoption Checklist
 

@@ -11,7 +11,7 @@ audience: humans_and_agents
 
 # Release And Deployment
 
-Первый repeatable release path для `zenrox` зафиксирован через `Render Blueprint` из файла [`render.yaml`](../../../render.yaml). Это ранний MVP flow без staging и без отдельного CI pipeline.
+Первый repeatable release path для `zenrox` зафиксирован через `Render Blueprint` из файла [`render.yaml`](../../../render.yaml). Production-like MVP service уже поднят на `https://zenrox.onrender.com`. Это ранний flow без staging и без отдельного CI pipeline.
 
 ## Release Flow
 
@@ -20,7 +20,7 @@ audience: humans_and_agents
 3. push в подключенный Git remote;
 4. Render auto-deploy web service и применяет `buildCommand` из `render.yaml`;
 5. во время build выполняется `bundle exec rails db:migrate`;
-6. проверить `GET /up` и Telegram webhook smoke;
+6. проверить `GET /up` на `https://zenrox.onrender.com/up` и Telegram webhook smoke;
 7. при первом deploy или смене URL обновить webhook через Telegram Bot API.
 
 ## Release Commands
@@ -33,6 +33,7 @@ curl -fsS https://<render-service>.onrender.com/up
 curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
   -d url=https://<render-service>.onrender.com/telegram/webhook \
   -d secret_token=<secret>
+curl -fsS https://api.telegram.org/bot<token>/getWebhookInfo
 ```
 
 Укажи явно:
@@ -41,6 +42,7 @@ curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
 - Условно обязательные для безопасного single-user rollout: `ZENROX_TELEGRAM_SECRET_TOKEN`, `ZENROX_TELEGRAM_ALLOWED_CHAT_ID`.
 - Render deploy может быть automated через Git push, но смена webhook URL остается manual step.
 - Отдельного approval workflow для production пока не автоматизировано; это early-stage operational gap.
+- Первый live deploy и webhook registration подтверждены для `https://zenrox.onrender.com` датой `2026-05-05`.
 
 ## Release Test Plan
 

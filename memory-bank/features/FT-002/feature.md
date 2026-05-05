@@ -9,7 +9,7 @@ derived_from:
   - ../../prd/PRD-001-first-capture-and-retrieval-loop.md
   - ../../use-cases/UC-007-open-tasks-retrieval.md
 status: active
-delivery_status: planned
+delivery_status: done
 audience: humans_and_agents
 must_not_define:
   - implementation_sequence
