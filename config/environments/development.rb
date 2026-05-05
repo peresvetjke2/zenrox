@@ -38,6 +38,10 @@ Rails.application.configure do
   # Set localhost to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
+  # Allow temporary tunnel hosts for webhook smoke-checks in development.
+  config.hosts << /.*\.trycloudflare\.com/
+  config.hosts << /.*\.lhr\.life/
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 

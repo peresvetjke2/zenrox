@@ -45,7 +45,7 @@ must_not_define:
 
 | Open Question ID | Question | Why unresolved | Blocks | Default action / escalation owner |
 | --- | --- | --- | --- | --- |
-| `OQ-01` | Какой production-like URL и deploy path будут использоваться для Telegram webhook | `ops/stages.md` и `ops/release.md` пока шаблонные | `CHK-04` | Не блокирует код; оставить live smoke-check manual-only, owner: human |
+| `OQ-01` | Какой конкретный public URL получит текущий Render deploy для live Telegram webhook | Конкретный hostname появляется только после non-local deploy, хотя сам rollout path уже зафиксирован в `memory-bank/ops/stages.md` и `memory-bank/ops/release.md` | `CHK-04` | Не блокирует код; оставить live smoke-check manual-only до появления live URL, owner: human |
 | `OQ-02` | Нужно ли жестко требовать `allowed_chat_id` уже в первом rollout | Early-stage single-user setup может захотеть быстрый старт без отдельного onboarding шага | `STEP-03` | По умолчанию сделать allow-list optional и документировать это явно; owner: agent |
 
 ## Environment Contract

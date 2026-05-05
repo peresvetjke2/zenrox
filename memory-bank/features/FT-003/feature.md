@@ -56,7 +56,7 @@ must_not_define:
 - `CON-01` Первый Telegram slice должен переиспользовать существующий capture backend contract вместо отдельного transport-specific parsing path.
 - `CON-02` Telegram delivery path должен быть безопасен к webhook retry и повторной доставке update.
 - `CON-03` Live phone verification зависит от bot token и публично доступного webhook URL, поэтому до появления non-local среды эта часть verify остается manual-only.
-- `DEC-01` Первый production-like deployment path и способ регистрации webhook-а пока не зафиксированы в `ops/release.md` и не блокируют локальную реализацию transport слоя.
+- `DEC-01` Первый production-like deployment path зафиксирован через Render Blueprint, а регистрация webhook-а остается manual release step и не блокирует локальную реализацию transport слоя.
 - `RJ-01` Нетекстовый Telegram update не должен попадать в capture-path; вместо этого пользователь получает явный ответ, что сейчас поддерживаются только текстовые сообщения.
 
 ### Invariants

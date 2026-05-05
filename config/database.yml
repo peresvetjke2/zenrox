@@ -30,6 +30,7 @@ test:
 
 production:
   <<: *default
-  database: zenrox_production
-  username: zenrox
+  url: <%= ENV["DATABASE_URL"] %>
+  database: <%= ENV.fetch("ZENROX_DATABASE_NAME", "zenrox_production") %>
+  username: <%= ENV.fetch("ZENROX_DATABASE_USER", "zenrox") %>
   password: <%= ENV["ZENROX_DATABASE_PASSWORD"] %>

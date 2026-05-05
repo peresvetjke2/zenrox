@@ -1,0 +1,37 @@
+databases:
+  - name: zenrox-db
+    plan: free
+    databaseName: zenrox_production
+    user: zenrox
+
+services:
+  - type: web
+    name: zenrox
+    runtime: ruby
+    plan: free
+    rootDir: .
+    buildCommand: "./bin/render-build.sh"
+    startCommand: "bundle exec puma -C config/puma.rb"
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_LOG_TO_STDOUT
+        value: "enabled"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zenrox-db
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: RAILS_MAX_THREADS
+        value: "3"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: ZENROX_TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ZENROX_TELEGRAM_SECRET_TOKEN
+        sync: false
+      - key: ZENROX_TELEGRAM_ALLOWED_CHAT_ID
+        sync: false

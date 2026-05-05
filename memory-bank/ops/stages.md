@@ -11,47 +11,37 @@ audience: humans_and_agents
 
 # Stages And Non-Local Environments
 
-На текущем этапе для `zenrox` non-local environments еще не зафиксированы. До появления staging, preview или production-like среды этот документ не должен трактоваться как описание существующих окружений.
-
-Когда такие окружения появятся, здесь нужно описать не только production, но и stage, beta, preview, sandbox или другие non-local среды, если они существуют.
+На текущем этапе первый repeatable non-local deploy path для `zenrox` зафиксирован через `Render`. Это production-like контур для MVP и Telegram webhook smoke-check, без отдельного staging-окружения.
 
 ## Environment Inventory
 
 | Environment | Purpose | Access path | Notes |
 | --- | --- | --- | --- |
-| `production` | Реальные пользователи и live traffic | Команда, jump host или UI | Самые строгие ограничения |
-| `staging` | Предрелизная проверка | Команда, URL или namespace | Может использоваться для smoke |
-| `sandbox` | Проверка интеграций и unsafe экспериментов | Optional | Если есть |
+| `production` | Публичный MVP endpoint и live Telegram webhook | Render dashboard + public URL сервиса | Ранний single-user runtime |
 
 ## Common Operations
 
-Здесь должны быть только реально разрешенные операции и их canonical entrypoints.
+Разрешенные read-only и deploy-операции раннего этапа:
 
 ```bash
-# Примеры:
-make console ENV=staging
-make logs ENV=production
-kubectl -n staging logs deploy/app
-ssh <bastion>
-psql "$DATABASE_URL"
+curl -fsS https://<render-service>.onrender.com/up
+curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
+  -d url=https://<render-service>.onrender.com/telegram/webhook \
+  -d secret_token=<secret>
 ```
 
 Для каждой операции зафиксируй:
 
-- кто имеет право ее запускать;
-- какие approval gates нужны;
-- где проходит граница read-only vs mutating access.
+- Render deploy запускается через dashboard или auto-deploy из подключенного Git-репозитория.
+- Проверка health endpoint `/up` считается безопасной read-only операцией.
+- `setWebhook` у Telegram является mutating-операцией во внешней системе и требует явного понимания, какой URL становится live.
 
 ## Credentials And Access
 
-Опиши:
-
-- где хранятся секреты;
-- как выдаются права;
-- какие env vars или secret stores используются;
-- что считается недопустимым обходом процедуры доступа.
-
-Никогда не храни реальные production credentials в шаблоне.
+- Secrets хранятся в Render environment variables.
+- Доступ к изменению переменных и ручному redeploy должен быть только у владельца проекта.
+- Telegram token, optional secret token и allowed chat id не коммитятся и не дублируются в markdown значениями.
+- Недопустимый обход: хранить production secrets в Git, shell history общего доступа или в `.env`, попадающем в репозиторий.
 
 ## Version And Health Checks
 
@@ -62,31 +52,24 @@ psql "$DATABASE_URL"
 - smoke URL;
 - базовые operational dashboards.
 
-Пример:
-
-```bash
-curl -fsS https://<stage-host>/health
-kubectl -n <namespace> get deploy <app>
-```
+- Health-check: `GET /up` на публичном Render URL.
+- Deployed version на раннем этапе отслеживается по latest successful deploy в Render dashboard, так как version/tagging flow еще не формализован.
+- Smoke URL для Telegram integration: `POST /telegram/webhook`.
 
 ## Logs And Observability
 
-Опиши canonical пути к:
-
-- application logs;
-- metrics;
-- traces;
-- error tracker;
-- dashboards для основных сервисов.
+- Application logs: вкладка `Logs` у Render web service.
+- Database health: Render database dashboard.
+- Отдельные metrics, traces и error tracker для проекта пока не зафиксированы; это осознанный early-stage gap.
 
 ## Test Data And Smoke Targets
 
-Если проект использует staging/demo tenants, seed users или test accounts, перечисли их здесь вместе с правилами использования.
+Для MVP используется один приватный Telegram chat, который при необходимости ограничивается через `ZENROX_TELEGRAM_ALLOWED_CHAT_ID`.
 
 ## Adoption Checklist
 
-- [ ] перечислены все non-local environments
-- [ ] указаны canonical access paths
-- [ ] описаны safe health/version checks
-- [ ] перечислены observability entrypoints
-- [ ] удалены фальшивые или нерелевантные примеры
+- [x] перечислены все non-local environments
+- [x] указаны canonical access paths
+- [x] описаны safe health/version checks
+- [x] перечислены observability entrypoints
+- [x] удалены фальшивые или нерелевантные примеры

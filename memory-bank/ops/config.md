@@ -56,7 +56,11 @@ audience: humans_and_agents
 
 | Variable | Domain | Required | Purpose |
 | --- | --- | --- | --- |
+| `DATABASE_URL` | Storage / persistence | yes for Render production | Полная строка подключения к production PostgreSQL, canonical PaaS contract |
 | `ZENROX_DATABASE_PASSWORD` | Storage / persistence | no | Пароль для PostgreSQL, если локальная БД требует auth |
+| `SECRET_KEY_BASE` | Platform / Rails runtime | yes for production | Секрет Rails для production boot и подписи framework internals |
+| `RAILS_MAX_THREADS` | Platform / Rails runtime | no | Размер thread pool Puma и Active Record pool baseline |
+| `WEB_CONCURRENCY` | Platform / Rails runtime | no | Число Puma workers для PaaS runtime |
 | `ZENROX_TELEGRAM_BOT_TOKEN` | Telegram / client delivery | yes for live Telegram | Bot token для исходящей отправки reply и live webhook path |
 | `ZENROX_TELEGRAM_SECRET_TOKEN` | Telegram / client delivery | no | Secret header guard для `X-Telegram-Bot-Api-Secret-Token` |
 | `ZENROX_TELEGRAM_ALLOWED_CHAT_ID` | Telegram / client delivery | no | Optional allow-list для единственного приватного чата early-stage single-user setup |

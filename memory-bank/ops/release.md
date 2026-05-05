@@ -11,43 +11,40 @@ audience: humans_and_agents
 
 # Release And Deployment
 
-Документ пока не адаптирован под реальный release path `zenrox`. До появления первого повторяемого deploy/release flow примеры ниже остаются шаблонными и не считаются каноничными командами проекта.
+Первый repeatable release path для `zenrox` зафиксирован через `Render Blueprint` из файла [`render.yaml`](../../../render.yaml). Это ранний MVP flow без staging и без отдельного CI pipeline.
 
 ## Release Flow
 
-Опиши реальный порядок шагов для проекта.
-
-Пример:
-
 1. bump версии;
-2. обновление changelog;
-3. tag или release branch;
-4. build артефактов;
-5. deploy на staging;
-6. smoke/acceptance;
-7. production deploy.
+2. прогон локальных `RSpec` и boot-check;
+3. push в подключенный Git remote;
+4. Render auto-deploy web service и применяет `buildCommand` из `render.yaml`;
+5. во время build выполняется `bundle exec rails db:migrate`;
+6. проверить `GET /up` и Telegram webhook smoke;
+7. при первом deploy или смене URL обновить webhook через Telegram Bot API.
 
 ## Release Commands
 
-Зафиксируй canonical команды проекта и явные safety rules.
+Canonical команды и safety rules раннего этапа:
 
 ```bash
-# Примеры:
-make release ENV=staging
-make deploy ENV=production
-gh release create vX.Y.Z
-docker build -t registry/app:vX.Y.Z .
+BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec
+curl -fsS https://<render-service>.onrender.com/up
+curl -fsS -X POST https://api.telegram.org/bot<token>/setWebhook \
+  -d url=https://<render-service>.onrender.com/telegram/webhook \
+  -d secret_token=<secret>
 ```
 
 Укажи явно:
 
-- какие переменные окружения обязательны;
-- какие окружения требуют явного approval;
-- где проходит граница между automated и manual release steps.
+- Обязательные production env vars: `DATABASE_URL`, `SECRET_KEY_BASE`, `ZENROX_TELEGRAM_BOT_TOKEN`.
+- Условно обязательные для безопасного single-user rollout: `ZENROX_TELEGRAM_SECRET_TOKEN`, `ZENROX_TELEGRAM_ALLOWED_CHAT_ID`.
+- Render deploy может быть automated через Git push, но смена webhook URL остается manual step.
+- Отдельного approval workflow для production пока не автоматизировано; это early-stage operational gap.
 
 ## Release Test Plan
 
-При каждом релизе полезно создавать отдельный тестовый план.
+При каждом заметном MVP-изменении полезно создавать короткий release smoke plan, даже если formal versioning еще не введен.
 
 **Формат:** `release-v{VERSION}-test-plan.md`
 
@@ -81,9 +78,7 @@ docker build -t registry/app:vX.Y.Z .
 
 ## Rollback
 
-Для реального проекта обязательно зафиксируй:
-
-- что считается rollback unit;
-- какой путь fastest safe rollback;
-- кто подтверждает rollback в production;
-- какие данные или миграции необратимы.
+- Rollback unit: предыдущий успешный deploy в Render.
+- Fastest safe rollback: redeploy previous commit в Render dashboard.
+- Если текущий deploy включал миграцию со schema change, rollback должен считаться отдельно от кода; пока в проекте нет documented reversible migration policy beyond standard Rails migrations.
+- Telegram webhook после rollback должен по-прежнему указывать на актуальный production URL; если URL не менялся, повторный `setWebhook` не требуется.
