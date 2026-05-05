@@ -48,6 +48,54 @@ RSpec.describe "POST /telegram/webhook", type: :request do
     )
   end
 
+  it "routes the exact retrieval command to open-tasks listing without creating a task" do
+    Task.create!(
+      body: "купить молоко",
+      source_text: "купить молоко",
+      operation_id: "ft-002-open-telegram-1",
+      status: "open"
+    )
+    Task.create!(
+      body: "сдать отчет",
+      source_text: "сдать отчет",
+      operation_id: "ft-002-open-telegram-2",
+      status: "open"
+    )
+    Task.create!(
+      body: "позвонить маме",
+      source_text: "позвонить маме",
+      operation_id: "ft-002-done-telegram-1",
+      status: "done"
+    )
+
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "задачи", update_id: 1100),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+
+    expected_reply = <<~TEXT.chomp
+      Открытые задачи:
+      - купить молоко
+      - сдать отчет
+    TEXT
+
+    expect(client).to have_received(:send_message).with(chat_id: 42, text: expected_reply)
+
+    write_evidence(
+      "chk-03/telegram-retrieval.json",
+      {
+        request: telegram_update(text: "задачи", update_id: 1100),
+        open_task_bodies: Task.open_for_retrieval.pluck(:body),
+        reply: expected_reply
+      },
+      feature: "ft-002"
+    )
+  end
+
   it "does not create a duplicate task when the same update is retried after an outbound failure" do
     allow(client).to receive(:send_message).and_return(false, true)
 

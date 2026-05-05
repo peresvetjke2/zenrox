@@ -2,15 +2,31 @@ module Interaction
   class TelegramWebhook
     Response = Struct.new(:http_status, keyword_init: true)
 
-    def self.call(payload:, secret_token:, config: Platform::TelegramConfig.current, client: Platform::TelegramClient.new(config:))
-      new(payload:, secret_token:, config:, client:).call
+    def self.call(
+      payload:,
+      secret_token:,
+      config: Platform::TelegramConfig.current,
+      client: Platform::TelegramClient.new(config:),
+      capture_service: Capture::ProcessMessage,
+      retrieval_service: Retrieval::ListOpenTasks
+    )
+      new(
+        payload:,
+        secret_token:,
+        config:,
+        client:,
+        capture_service:,
+        retrieval_service:
+      ).call
     end
 
-    def initialize(payload:, secret_token:, config:, client:)
+    def initialize(payload:, secret_token:, config:, client:, capture_service:, retrieval_service:)
       @payload = normalize_payload(payload)
       @secret_token = secret_token
       @config = config
       @client = client
+      @capture_service = capture_service
+      @retrieval_service = retrieval_service
     end
 
     def call
@@ -20,8 +36,7 @@ module Interaction
       return Response.new(http_status: :no_content) unless config.allowed_chat?(chat_id)
 
       reply_text = if message_text.present?
-        capture_result = Capture::ProcessMessage.call(text: message_text, operation_id: operation_id)
-        format_capture_reply(capture_result)
+        process_text_message
       else
         "Сейчас я умею принимать только текстовые сообщения."
       end
@@ -33,7 +48,7 @@ module Interaction
 
     private
 
-    attr_reader :client, :config, :payload, :secret_token
+    attr_reader :capture_service, :client, :config, :payload, :retrieval_service, :secret_token
 
     def chat_id
       message.dig("chat", "id")
@@ -44,6 +59,13 @@ module Interaction
       lines << result.reason if result.reason.present?
       lines << result.hint if result.hint.present?
       lines.join("\n")
+    end
+
+    def process_text_message
+      return retrieval_service.call.message if retrieval_command?
+
+      capture_result = capture_service.call(text: message_text, operation_id: operation_id)
+      format_capture_reply(capture_result)
     end
 
     def message
@@ -67,6 +89,10 @@ module Interaction
 
     def private_message?
       message.dig("chat", "type") == "private"
+    end
+
+    def retrieval_command?
+      message_text == "задачи"
     end
   end
 end
