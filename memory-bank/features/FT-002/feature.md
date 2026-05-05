@@ -42,7 +42,7 @@ must_not_define:
 - `REQ-05` Supported retrieval-запрос не создает новых задач, не обновляет существующие и не меняет task statuses.
 - `REQ-06` Первый retrieval slice доступен через текущую Telegram conversational surface проекта, пригодную для phone-friendly usage.
 - `REQ-07` Фича задает минимальный verify-path: automated coverage для retrieval filtering, empty-state, routing и read-only invariants, плюс отдельный manual Telegram smoke-check на live surface.
-- `REQ-08` Retrieval-path возвращает детерминированный user-visible текстовый verdict: для non-empty case — заголовок `Открытые задачи:` и далее по одной задаче на строку в stable order; для empty-state — `Открытых задач нет.`; для read failure — `Не удалось получить список открытых задач.` без частичного списка.
+- `REQ-08` Retrieval-path возвращает детерминированный user-visible текстовый verdict: для non-empty case — заголовок `Открытые задачи:` и далее по одной задаче на строку в формате `- <task.body>` в stable order; для empty-state — `Открытых задач нет.`; для read failure — `Не удалось получить список открытых задач.` без частичного списка.
 
 ### Non-Scope
 
@@ -103,7 +103,7 @@ must_not_define:
 | --- | --- | --- | --- |
 | `CTR-01` | `exact tasks command -> retrieval intent` | interaction -> retrieval path | Поддерживается только точный запрос `задачи`; он маршрутизируется в retrieval, а не в capture |
 | `CTR-02` | `task storage -> stable list of open tasks` | personal-memory -> retrieval path | В выборку входят все `open`-задачи, не входят `done`, порядок выдачи — по возрастанию `task.id` |
-| `CTR-03` | `open tasks collection -> user-visible textual answer` | retrieval path -> interaction/user | Для non-empty case ответ начинается со строки `Открытые задачи:` и далее перечисляет задачи по одной на строку в stable order; для empty-state возвращается `Открытых задач нет.` |
+| `CTR-03` | `open tasks collection -> user-visible textual answer` | retrieval path -> interaction/user | Для non-empty case ответ начинается со строки `Открытые задачи:` и далее перечисляет задачи по одной на строку в формате `- <task.body>` в stable order; для empty-state возвращается `Открытых задач нет.` |
 | `CTR-04` | `retrieval request -> no storage mutation` | interaction/retrieval -> personal-memory | Read-path не создает и не обновляет task records |
 | `CTR-05` | `retrieval read failure -> explicit failed response` | retrieval path -> interaction/user | Если owner-layer чтение не завершилось успешно, пользователь получает `Не удалось получить список открытых задач.` без частичного списка и без fallback к capture-path |
 
@@ -146,9 +146,9 @@ must_not_define:
 
 ### Acceptance Scenarios
 
-- `SC-01` В системе есть смешанный набор задач: `купить молоко` (`open`), `позвонить маме` (`done`), `записаться к врачу` (`open` без срока). Пользователь отправляет канонический запрос `задачи` и получает user-visible список из двух `open`-задач без `done`-записи.
-- `SC-02` Все открытые задачи не имеют срока выполнения, но пользователь все равно получает их полный список без скрытой date-based фильтрации.
-- `SC-03` В системе нет открытых задач; запрос `задачи` возвращает явный empty-state ответ и не меняет сохраненные записи.
+- `SC-01` В системе есть смешанный набор задач: `купить молоко` (`open`), `позвонить маме` (`done`), `записаться к врачу` (`open` без срока). Пользователь отправляет канонический запрос `задачи` и получает user-visible список из двух `open`-задач без `done`-записи, начиная с заголовка `Открытые задачи:` и далее строками `- купить молоко`, `- записаться к врачу`.
+- `SC-02` Все открытые задачи не имеют срока выполнения, но пользователь все равно получает их полный список без скрытой date-based фильтрации и в том же stable text format `Открытые задачи:` + `- <task.body>`.
+- `SC-03` В системе нет открытых задач; запрос `задачи` возвращает явный empty-state ответ `Открытых задач нет.` и не меняет сохраненные записи.
 - `SC-04` Пользователь отправляет запрос `задачи` через текущий Telegram-канал и получает ответ в том же канале без создания новой задачи.
 - `SC-05` После настройки live Telegram integration пользователь отправляет запрос `задачи` с телефона и получает тот же retrieval-answer в реальном чате.
 - `SC-06` Во время supported retrieval owner-layer чтение task storage завершается неуспешно; пользователь получает явный failed verdict `Не удалось получить список открытых задач.` без частичного списка и без изменения сохраненных записей.
@@ -159,10 +159,10 @@ Verify должен быть исполнимым.
 
 | Check ID | Covers | How to check | Expected result | Evidence path |
 | --- | --- | --- | --- | --- |
-| `CHK-01` | `EC-01`, `EC-02`, `SC-01`, `SC-02`, `NEG-01` | Прогнать deterministic request/service spec на наборе задач со статусами `open` и `done`, включая записи без срока выполнения | Ответ содержит все и только `open`-задачи, не теряет задачи без срока и выдает их в стабильном порядке | `artifacts/ft-002/verify/chk-01/` |
+| `CHK-01` | `EC-01`, `EC-02`, `SC-01`, `SC-02`, `NEG-01` | Прогнать deterministic request/service spec на наборе задач со статусами `open` и `done`, включая записи без срока выполнения | Ответ содержит все и только `open`-задачи, не теряет задачи без срока и выдает точный текст `Открытые задачи:` с последующими строками `- <task.body>` в стабильном порядке | `artifacts/ft-002/verify/chk-01/` |
 | `CHK-02` | `EC-03`, `EC-04`, `SC-03`, `NEG-02` | Прогнать deterministic empty-backlog сценарий и проверить task count / statuses до и после запроса | Система возвращает явный empty-state ответ, а task storage остается без изменений | `artifacts/ft-002/verify/chk-02/` |
 | `CHK-03` | `EC-04`, `EC-05`, `SC-04` | Прогнать transport-level deterministic check через текущую Telegram surface с stubbed delivery client | Запрос `задачи` не создает задачу и возвращает user-visible ответ в том же канале | `artifacts/ft-002/verify/chk-03/` |
-| `CHK-04` | `EC-06`, `SC-05` | Выполнить manual Telegram smoke-check на реальном телефоне после настройки bot token и webhook URL | Запрос `задачи` реально доходит до приложения и user-visible retrieval-answer возвращается в тот же Telegram-чат | `artifacts/ft-002/verify/chk-04/` |
+| `CHK-04` | `EC-06`, `SC-05` | Выполнить manual Telegram smoke-check на реальном телефоне после настройки bot token и webhook URL: заранее подготовить хотя бы одну `open`-задачу, отправить `задачи` из разрешенного приватного чата и сохранить transcript/screenshot запроса и ответа | Запрос `задачи` реально доходит до приложения, user-visible retrieval-answer возвращается в тот же Telegram-чат и его текст соответствует canonical verdict contract | `artifacts/ft-002/verify/chk-04/` |
 | `CHK-05` | `EC-07`, `SC-06`, `NEG-03` | Прогнать deterministic retrieval read failure через injected failure/stub owner-layer и проверить verdict и storage state | Пользователь получает `Не удалось получить список открытых задач.`, не получает частичный список и task storage остается без изменений | `artifacts/ft-002/verify/chk-05/` |
 
 ### Test matrix
@@ -190,7 +190,7 @@ Verify должен быть исполнимым.
 | `EVID-01` | Structured verify output для mixed-status retrieval | verify-runner | `artifacts/ft-002/verify/chk-01/` | `CHK-01` |
 | `EVID-02` | Structured verify output для empty-state retrieval | verify-runner | `artifacts/ft-002/verify/chk-02/` | `CHK-02` |
 | `EVID-03` | Structured request-spec или equivalent output для transport-level retrieval delivery | verify-runner | `artifacts/ft-002/verify/chk-03/` | `CHK-03` |
-| `EVID-04` | Manual transcript, screenshot или checklist-result live Telegram retrieval smoke-check | human | `artifacts/ft-002/verify/chk-04/` | `CHK-04` |
+| `EVID-04` | Manual transcript, screenshot или checklist-result live Telegram retrieval smoke-check с зафиксированными запросом `задачи` и полученным reply | human | `artifacts/ft-002/verify/chk-04/` | `CHK-04` |
 | `EVID-05` | Structured verify output для retrieval read failure | verify-runner | `artifacts/ft-002/verify/chk-05/` | `CHK-05` |
 
 ### Negative Scenarios
