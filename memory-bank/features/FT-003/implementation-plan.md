@@ -5,7 +5,7 @@ doc_function: derived
 purpose: "Execution-план реализации FT-003. Фиксирует discovery context, шаги, риски и test strategy без переопределения canonical feature-фактов."
 derived_from:
   - feature.md
-status: active
+status: archived
 audience: humans_and_agents
 must_not_define:
   - ft_003_scope
@@ -38,14 +38,14 @@ must_not_define:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `POST /telegram/webhook` happy path | `REQ-01`, `REQ-02`, `SC-01`, `CHK-01` | Нет | Request spec для supported text update и accepted reply | `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `none`, CI еще не адаптирован | none | `none` |
 | webhook retry / idempotency | `REQ-03`, `SC-02`, `CHK-02` | Нет | Request spec с повторной доставкой того же `update_id` | `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `none`, CI еще не адаптирован | none | `none` |
-| secret guard / non-text behavior | `REQ-04`, `REQ-05`, `NEG-01`, `NEG-02`, `CHK-03` | Нет | Request spec для invalid secret и non-text update | `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `none`, CI еще не адаптирован | none | `none` |
-| live Telegram phone smoke | `REQ-05`, `SC-03`, `CHK-04` | Нет | Не автоматизируется локально без live bot token и публичного webhook URL | `none` | `none` | Live infra и реальный телефон вне локального deterministic harness | `AG-01` |
+| secret / chat guards and non-text behavior | `REQ-04`, `REQ-05`, `NEG-01`, `NEG-02`, `NEG-03`, `NEG-04`, `CHK-03` | Нет | Request spec для invalid secret, non-text update, non-private chat и disallowed chat id | `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `none`, CI еще не адаптирован | none | `none` |
+| live Telegram phone smoke | `REQ-05`, `SC-03`, `CHK-04` | Нет | Не автоматизируется локально; выполняется вручную с live bot token и публичным webhook URL через stable non-local deploy или временный `dev+tunnel` path | `none` | `none` | Реальный телефон и live Telegram delivery вне локального deterministic harness | `AG-01` |
 
 ## Open Questions / Ambiguities
 
 | Open Question ID | Question | Why unresolved | Blocks | Default action / escalation owner |
 | --- | --- | --- | --- | --- |
-| `OQ-01` | Какой конкретный public URL получит текущий Render deploy для live Telegram webhook | Конкретный hostname появляется только после non-local deploy, хотя сам rollout path уже зафиксирован в `memory-bank/ops/stages.md` и `memory-bank/ops/release.md` | `CHK-04` | Не блокирует код; оставить live smoke-check manual-only до появления live URL, owner: human |
+| `OQ-01` | Какой конкретный public URL будет использоваться для текущего manual smoke-check: stable non-local deploy или временный `dev+tunnel` host | Конкретный hostname зависит от выбранного verify path и появляется только в момент live проверки | `CHK-04` | Не блокирует код; выполнить manual smoke-check на любом допустимом public URL из `memory-bank/ops/development.md` или `memory-bank/ops/stages.md`, owner: human |
 | `OQ-02` | Нужно ли жестко требовать `allowed_chat_id` уже в первом rollout | Early-stage single-user setup может захотеть быстрый старт без отдельного onboarding шага | `STEP-03` | По умолчанию сделать allow-list optional и документировать это явно; owner: agent |
 
 ## Environment Contract
@@ -54,7 +54,7 @@ must_not_define:
 | --- | --- | --- | --- |
 | setup | Rails app, PostgreSQL и test harness из `memory-bank/ops/development.md` должны быть доступны локально | `STEP-01`..`STEP-05` | Request specs не запускаются или app не поднимает routes/services |
 | test | Canonical verify command на этом этапе: `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `CHK-01`, `CHK-02`, `CHK-03` | Локальный verify нельзя считать завершенным |
-| access / network / secrets | Для локальной deterministic реализации live Telegram token не нужен; для `CHK-04` нужны `ZENROX_TELEGRAM_BOT_TOKEN`, optional `ZENROX_TELEGRAM_SECRET_TOKEN` и публичный webhook URL | `STEP-04`, `CHK-04` | Без live creds/manual infra phone smoke-check остается незавершенным и не должен маскироваться под complete rollout |
+| access / network / secrets | Для локальной deterministic реализации live Telegram token не нужен; для `CHK-04` нужны `ZENROX_TELEGRAM_BOT_TOKEN`, optional `ZENROX_TELEGRAM_SECRET_TOKEN` и публичный webhook URL через stable non-local deploy или временный `dev+tunnel` path | `STEP-04`, `CHK-04` | Без live creds/manual infra phone smoke-check остается незавершенным и не должен маскироваться под complete rollout |
 
 ## Preconditions
 
@@ -62,7 +62,7 @@ must_not_define:
 | --- | --- | --- | --- | --- |
 | `PRE-01` | `FT-001 / ASM-01`, `FT-003 / ASM-02` | Existing capture service и task persistence уже являются canonical owner-слоем для text capture | `STEP-02`, `STEP-03` | yes |
 | `PRE-02` | `FT-003 / CON-01`, `FT-003 / CTR-04` | Telegram integration строится как transport layer + platform config, без дублирования business parsing | `STEP-02`, `STEP-03`, `STEP-04` | yes |
-| `PRE-03` | `FT-003 / CON-03`, `FT-003 / DEC-01` | Live webhook registration и public deployment пока не требуются для локального code-complete состояния | `STEP-05` | no |
+| `PRE-03` | `FT-003 / CON-03`, `FT-003 / DEC-01` | Для локального code-complete состояния stable deploy не требуется; для `CHK-04` нужен любой допустимый public webhook URL | `STEP-05` | no |
 
 ## Workstreams
 
@@ -76,7 +76,7 @@ must_not_define:
 
 | Approval Gate ID | Trigger | Applies to | Why approval is required | Approver / evidence |
 | --- | --- | --- | --- | --- |
-| `AG-01` | Запуск live webhook registration, сообщение реальному пользователю или проверка на production-like URL | `CHK-04` | Это внешне-эффективное действие и зависит от live credentials / deployment surface | user approval + manual evidence in `artifacts/ft-003/verify/chk-04/` |
+| `AG-01` | Запуск live webhook registration, сообщение реальному пользователю или проверка через public URL (`dev+tunnel` или production-like) | `CHK-04` | Это внешне-эффективное действие и зависит от live credentials / публичной surface | user approval + manual evidence in `artifacts/ft-003/verify/chk-04/` |
 
 ## Порядок работ
 
@@ -86,7 +86,7 @@ must_not_define:
 | `STEP-02` | agent | `REQ-03` | Сделать write-path idempotent для transport-derived `operation_id` | `app/services/capture/process_message.rb`, `app/services/capture/task_writer.rb` | Retry-safe capture persistence | `CHK-02` | `EVID-02` | Request specs | `PRE-01` | none | Если обнаружится несовместимость с current task contract |
 | `STEP-03` | agent | `REQ-01`, `REQ-02`, `REQ-04` | Добавить Telegram webhook controller, interaction service и platform adapters | `config/routes.rb`, `app/controllers/telegram_webhooks_controller.rb`, `app/services/interaction/*`, `app/services/platform/*` | Рабочий webhook path с reply delivery | `CHK-01`, `CHK-03` | `EVID-01`, `EVID-03` | Request specs | `PRE-01`, `PRE-02`, `OQ-02` | none | Если понадобится live network для локального deterministic verify |
 | `STEP-04` | agent | `REQ-05` | Добавить deterministic request coverage и evidence artifacts | `spec/requests/telegram_webhooks_spec.rb`, `spec/support/evidence_helper.rb` | Automated regression coverage | `CHK-01`, `CHK-02`, `CHK-03` | `EVID-01`, `EVID-02`, `EVID-03` | `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `WS-1`, `WS-2` | none | Если test harness не проходит локально |
-| `STEP-05` | agent | `REQ-05` | Зафиксировать manual-only live smoke gap и провести локальный simplify review | `memory-bank/features/FT-003/feature.md`, финальный handoff | Честный verify state и code-quality pass | `CHK-04` | `EVID-04` | Manual-only note + code review | `PRE-03`, `AG-01` | `AG-01` | Если user потребует live phone proof без deploy surface |
+| `STEP-05` | agent | `REQ-05` | Зафиксировать manual-only live smoke gap и провести локальный simplify review | `memory-bank/features/FT-003/feature.md`, финальный handoff | Честный verify state и code-quality pass | `CHK-04` | `EVID-04` | Manual-only note + code review | `PRE-03`, `AG-01` | `AG-01` | Если user потребует live phone proof без любого доступного public webhook URL |
 
 ## Parallelizable Work
 

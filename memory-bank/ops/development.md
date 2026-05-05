@@ -54,6 +54,14 @@ BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rails db:prepare
 - Для локальной deterministic разработки `FT-003` live Telegram credentials тоже не требуются; request specs используют stubbed config/client.
 - Для ручного phone smoke-check `FT-003` нужны `ZENROX_TELEGRAM_BOT_TOKEN`, optional `ZENROX_TELEGRAM_SECRET_TOKEN`, optional `ZENROX_TELEGRAM_ALLOWED_CHAT_ID` и публично доступный webhook URL.
 
+## Dev Live Smoke
+
+Для раннего live-check без deploy допустим путь `local Rails server -> temporary tunnel -> Telegram webhook`.
+
+- Использовать отдельный приватный Telegram chat для smoke-проверок.
+- Secrets не читать и не печатать без явного разрешения владельца.
+- Минимальный порядок: поднять `rails server`, открыть temporary tunnel, выполнить `setWebhook`, отправить supported текст в test chat, проверить reply, затем при необходимости сбросить webhook.
+
 ## Adoption Checklist
 
 - [x] указаны реальные setup-команды

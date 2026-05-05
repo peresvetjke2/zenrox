@@ -10,7 +10,7 @@ derived_from:
   - ../../prd/PRD-001-first-capture-and-retrieval-loop.md
   - ../../use-cases/UC-006-single-task-text-capture.md
 status: active
-delivery_status: in_progress
+delivery_status: done
 audience: humans_and_agents
 must_not_define:
   - implementation_sequence
@@ -124,13 +124,13 @@ must_not_define:
 | `REQ-02` | `CON-01`, `CTR-03`, `FM-02`, `FM-04` | `EC-01`, `SC-01`, `SC-03` | `CHK-01`, `CHK-03` | `EVID-01`, `EVID-03` |
 | `REQ-03` | `CON-02`, `CTR-02`, `INV-01`, `INV-03`, `FM-01`, `FM-05` | `EC-02`, `SC-02` | `CHK-02` | `EVID-02` |
 | `REQ-04` | `CTR-04`, `FM-04` | `EC-04`, `SC-03` | `CHK-03` | `EVID-03` |
-| `REQ-05` | `CON-03`, `DEC-01`, `FM-04`, `RJ-01` | `EC-03`, `EC-04`, `SC-03`, `NEG-01`, `NEG-02` | `CHK-03`, `CHK-04` | `EVID-03`, `EVID-04` |
+| `REQ-05` | `CON-03`, `DEC-01`, `FM-04`, `RJ-01` | `EC-03`, `EC-04`, `SC-03`, `NEG-01`, `NEG-02`, `NEG-03`, `NEG-04` | `CHK-03`, `CHK-04` | `EVID-03`, `EVID-04` |
 
 ### Acceptance Scenarios
 
 - `SC-01` Пользователь отправляет в Telegram supported текстовую реплику вроде `купить молоко`; система обрабатывает update через общий capture-path, сохраняет ровно одну `open`-задачу и отправляет reply `Задача сохранена.`.
 - `SC-02` Telegram повторно доставляет тот же `update_id` после временного outbound failure; система не создает вторую задачу и при повторной обработке лишь повторяет попытку доставки reply.
-- `SC-03` Telegram-канал запущен с config owner-слоем: secret/header check, bot token и optional allowed chat id читаются централизованно, а при нетекстовом сообщении пользователь получает явное ограничение текущего канала.
+- `SC-03` Telegram-канал запущен с config owner-слоем: secret/header check, bot token и optional allowed chat id читаются централизованно; нетекстовое сообщение получает явное ограничение текущего канала, а update не из приватного или неразрешенного чата не обрабатывается.
 
 ### Checks
 
@@ -140,8 +140,8 @@ Verify должен быть исполнимым.
 | --- | --- | --- | --- | --- |
 | `CHK-01` | `EC-01`, `SC-01` | Прогнать deterministic request-spec для `POST /telegram/webhook` с supported text update и stubbed Telegram client | Создается ровно одна `open`-задача, webhook отвечает success-status, outbound adapter получает текстовый reply с accepted verdict | `artifacts/ft-003/verify/chk-01/` |
 | `CHK-02` | `EC-02`, `SC-02` | Прогнать retry scenario с одним и тем же `update_id`, где первая outbound попытка проваливается, а вторая проходит | В БД остается одна задача, повторный webhook не создает дубликат, reply пытается отправиться повторно | `artifacts/ft-003/verify/chk-02/` |
-| `CHK-03` | `EC-03`, `EC-04`, `SC-03`, `NEG-01`, `NEG-02` | Прогнать deterministic request-spec для нетекстового update и invalid secret с stubbed config/client | Нетекстовый update не создает задачу и получает explanatory reply; invalid secret не проходит обработку и не вызывает outbound delivery | `artifacts/ft-003/verify/chk-03/` |
-| `CHK-04` | `EC-01`, `EC-04`, `SC-01`, `SC-03` | Выполнить manual smoke-check на реальном телефоне после настройки bot token и webhook URL | Сообщение из Telegram реально доходит до приложения и пользователь получает ответ в том же чате | `artifacts/ft-003/verify/chk-04/` |
+| `CHK-03` | `EC-03`, `EC-04`, `SC-03`, `NEG-01`, `NEG-02`, `NEG-03`, `NEG-04` | Прогнать deterministic request-spec для нетекстового update, invalid secret, non-private chat и disallowed chat id с stubbed config/client | Нетекстовый update не создает задачу и получает explanatory reply; invalid secret не проходит обработку и не вызывает outbound delivery; update не из приватного или неразрешенного чата игнорируется без сохранения задачи и без outbound reply | `artifacts/ft-003/verify/chk-03/` |
+| `CHK-04` | `EC-01`, `EC-04`, `SC-01`, `SC-03` | Выполнить manual smoke-check на реальном телефоне после настройки bot token и webhook URL через stable non-local deploy или временный `dev+tunnel` path | Сообщение из Telegram реально доходит до приложения и пользователь получает ответ в том же чате | `artifacts/ft-003/verify/chk-04/` |
 
 ### Test matrix
 
@@ -172,3 +172,5 @@ Verify должен быть исполнимым.
 
 - `NEG-01` Telegram присылает нетекстовый update; система не должна создавать задачу и должна явно сообщить, что сейчас поддерживаются только текстовые сообщения.
 - `NEG-02` Webhook приходит без корректного secret token при включенной secret-check защите; система не должна обрабатывать update и не должна отправлять reply.
+- `NEG-03` Telegram присылает update не из `private` chat; система не должна создавать задачу и не должна отправлять reply.
+- `NEG-04` Telegram присылает update из `private` chat, который не совпадает с configured `allowed_chat_id`; система не должна создавать задачу и не должна отправлять reply.

@@ -11,7 +11,7 @@ audience: humans_and_agents
 
 # Stages And Non-Local Environments
 
-На текущем этапе первый repeatable non-local deploy path для `zenrox` зафиксирован через `Render`. Это production-like контур для MVP и Telegram webhook smoke-check, без отдельного staging-окружения.
+На текущем этапе первый repeatable non-local deploy path для `zenrox` зафиксирован через `Render`. Это production-like контур для MVP и Telegram webhook smoke-check, без отдельного staging-окружения. Для раннего ручного verify также допустим временный `dev+tunnel` путь, описанный в `ops/development.md`, если нужен быстрый live-check без deploy.
 
 ## Environment Inventory
 

@@ -1,4 +1,6 @@
 {
   "invalid_secret_status": "unauthorized",
-  "non_text_reply": "Сейчас я умею принимать только текстовые сообщения."
+  "non_text_reply": "Сейчас я умею принимать только текстовые сообщения.",
+  "group_chat_status": "no_content",
+  "disallowed_chat_status": "no_content"
 }
