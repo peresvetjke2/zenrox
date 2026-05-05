@@ -38,6 +38,7 @@ Use case нужен для сценария, который живет на ур
 | `UC-004` | Task Status Lifecycle | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
 | `UC-005` | Reminder Scheduling And Delivery | `draft` | Автор проекта | `none` | `none` | 2026-05-04 |
 | `UC-006` | Single-task Text Capture | `draft` | Автор проекта | `PRD-001` | `FT-001`, `FT-003` | 2026-05-04 |
+| `UC-007` | Open Tasks Retrieval | `active` | Автор проекта | `PRD-001` | `FT-002` | 2026-05-05 |
 
 ## Naming
 
