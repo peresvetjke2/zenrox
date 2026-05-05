@@ -43,7 +43,7 @@ must_not_define:
 
 ### Non-Scope
 
-- `NS-01` Retrieval-ответы в Telegram, включая вопрос `какие у меня открытые дела?`.
+- `NS-01` Retrieval-ответы в Telegram, включая запрос `задачи`.
 - `NS-02` Group chats, multi-user routing, сложная авторизация и полноценный account model.
 - `NS-03` Голосовые сообщения, изображения, файлы и другие нетекстовые Telegram payload types как supported input.
 - `NS-04` Исходящие reminders, background jobs и push-like delivery beyond synchronous reply на входящее сообщение.
