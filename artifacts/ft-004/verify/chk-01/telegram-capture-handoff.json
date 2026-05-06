@@ -1,0 +1,21 @@
+{
+  "request": {
+    "update_id": 1001,
+    "message": {
+      "message_id": 9,
+      "chat": {
+        "id": 42,
+        "type": "private"
+      },
+      "text": "купить молоко"
+    }
+  },
+  "task": {
+    "id": 3,
+    "body": "купить молоко",
+    "status": "open",
+    "source_text": "купить молоко",
+    "operation_id": "telegram:update:1001"
+  },
+  "reply": "Задача сохранена."
+}

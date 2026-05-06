@@ -38,17 +38,17 @@ RSpec.describe "POST /telegram/webhook", type: :request do
     expect(client).to have_received(:send_message).with(chat_id: 42, text: "Задача сохранена.")
 
     write_evidence(
-      "chk-01/telegram-success.json",
+      "chk-01/telegram-capture-handoff.json",
       {
         request: telegram_update(text: "купить молоко"),
         task: task.attributes.slice("id", "body", "status", "source_text", "operation_id"),
         reply: "Задача сохранена."
       },
-      feature: "ft-003"
+      feature: "ft-004"
     )
   end
 
-  it "routes the exact retrieval command to open-tasks listing without creating a task" do
+  it "routes retrieval paraphrases to open-tasks listing without creating a task" do
     Task.create!(
       body: "купить молоко",
       source_text: "купить молоко",
@@ -70,7 +70,7 @@ RSpec.describe "POST /telegram/webhook", type: :request do
 
     expect do
       post "/telegram/webhook",
-        params: telegram_update(text: "задачи", update_id: 1100),
+        params: telegram_update(text: "что у меня открыто?", update_id: 1100),
         as: :json,
         headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
     end.not_to change(Task, :count)
@@ -86,13 +86,142 @@ RSpec.describe "POST /telegram/webhook", type: :request do
     expect(client).to have_received(:send_message).with(chat_id: 42, text: expected_reply)
 
     write_evidence(
-      "chk-03/telegram-retrieval.json",
+      "chk-04/telegram-retrieval-handoff.json",
       {
-        request: telegram_update(text: "задачи", update_id: 1100),
+        request: telegram_update(text: "что у меня открыто?", update_id: 1100),
         open_task_bodies: Task.open_for_retrieval.pluck(:body),
         reply: expected_reply
       },
-      feature: "ft-002"
+      feature: "ft-004"
+    )
+  end
+
+  it "returns a pending-executor reply for an unambiguous lifecycle intent without mutating task state" do
+    Task.create!(
+      body: "купить молоко",
+      source_text: "купить молоко",
+      operation_id: "ft-004-telegram-lifecycle-1",
+      status: "open"
+    )
+    before_snapshot = Task.order(:id).pluck(:id, :body, :status)
+
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "закрой купить молоко", update_id: 1200),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+    expect(Task.order(:id).pluck(:id, :body, :status)).to eq(before_snapshot)
+    expect(client).to have_received(:send_message).with(
+      chat_id: 42,
+      text: "Не выполнил действие: задачу для завершения удалось определить, но автоматическое закрытие пока не реализовано."
+    )
+
+    write_evidence(
+      "chk-05/telegram-lifecycle-pending.json",
+      {
+        request: telegram_update(text: "закрой купить молоко", update_id: 1200),
+        before: before_snapshot,
+        after: Task.order(:id).pluck(:id, :body, :status),
+        reply: "Не выполнил действие: задачу для завершения удалось определить, но автоматическое закрытие пока не реализовано."
+      },
+      feature: "ft-004"
+    )
+  end
+
+  it "returns clarification for mixed-intent input without side effects" do
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "покажи задачи и закрой первую", update_id: 1201),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+    expect(client).to have_received(:send_message).with(
+      chat_id: 42,
+      text: "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз."
+    )
+  end
+
+  it "returns unsupported for out-of-scope input without creating a task" do
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "что я говорил про корову месяц назад?", update_id: 1202),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+    expect(client).to have_received(:send_message).with(
+      chat_id: 42,
+      text: "Не выполнил действие: запрос пока не поддерживается в этом канале."
+    )
+
+    write_evidence(
+      "chk-03/telegram-safe-non-success.json",
+      {
+        mixed_reply: "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз.",
+        unsupported_reply: "Не выполнил действие: запрос пока не поддерживается в этом канале."
+      },
+      feature: "ft-004"
+    )
+  end
+
+  it "preserves downstream capture rejection formatting after routing handoff" do
+    rejection = Capture::Result.rejected(
+      reason: "В сообщении больше одного действия.",
+      hint: "Разбейте сообщение на одну задачу за раз."
+    )
+    allow(Capture::ProcessMessage).to receive(:call).and_return(rejection)
+
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "купить молоко", update_id: 1203),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+    expect(client).to have_received(:send_message).with(
+      chat_id: 42,
+      text: <<~TEXT.chomp
+        Не получилось сохранить задачу автоматически.
+        В сообщении больше одного действия.
+        Разбейте сообщение на одну задачу за раз.
+      TEXT
+    )
+  end
+
+  it "preserves downstream retrieval failure messaging after routing handoff" do
+    allow(Retrieval::ListOpenTasks).to receive(:call).and_return(Retrieval::Result.failure)
+
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "какие у меня задачи?", update_id: 1204),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+    expect(client).to have_received(:send_message).with(
+      chat_id: 42,
+      text: "Не удалось получить список открытых задач."
+    )
+
+    write_evidence(
+      "chk-04/telegram-downstream-passthrough.json",
+      {
+        capture_rejection_reply: [
+          "Не получилось сохранить задачу автоматически.",
+          "В сообщении больше одного действия.",
+          "Разбейте сообщение на одну задачу за раз."
+        ].join("\n"),
+        retrieval_failure_reply: "Не удалось получить список открытых задач."
+      },
+      feature: "ft-004"
     )
   end
 

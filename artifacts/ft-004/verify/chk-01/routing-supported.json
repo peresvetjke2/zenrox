@@ -1,0 +1,17 @@
+{
+  "купить молоко": {
+    "intent_label": "capture_task",
+    "resolution_status": "handoff",
+    "downstream": "capture_task"
+  },
+  "что у меня открыто?": {
+    "intent_label": "list_open_tasks",
+    "resolution_status": "handoff",
+    "downstream": "list_open_tasks"
+  },
+  "покажи задачи": {
+    "intent_label": "list_open_tasks",
+    "resolution_status": "handoff",
+    "downstream": "list_open_tasks"
+  }
+}

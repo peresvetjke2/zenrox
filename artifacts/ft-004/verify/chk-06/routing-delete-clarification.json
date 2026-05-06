@@ -1,0 +1,19 @@
+{
+  "task_bodies": [
+    [
+      "купить молоко",
+      "open"
+    ],
+    [
+      "купить молоко",
+      "done"
+    ]
+  ],
+  "verdict": {
+    "intent_label": "delete_task",
+    "resolution_status": "clarification_needed",
+    "downstream": null,
+    "reply_text": "Не выполнил действие: уточните точную задачу для удаления.",
+    "target_reference": null
+  }
+}

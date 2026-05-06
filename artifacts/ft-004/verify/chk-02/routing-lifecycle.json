@@ -1,0 +1,39 @@
+{
+  "task": {
+    "id": 13,
+    "body": "купить молоко",
+    "status": "open"
+  },
+  "verdicts": {
+    "done": {
+      "intent_label": "mark_task_done",
+      "resolution_status": "pending_executor",
+      "downstream": null,
+      "reply_text": "Не выполнил действие: задачу для завершения удалось определить, но автоматическое закрытие пока не реализовано.",
+      "target_reference": {
+        "task_id": 13,
+        "body": "купить молоко"
+      }
+    },
+    "reopen": {
+      "intent_label": "reopen_task",
+      "resolution_status": "pending_executor",
+      "downstream": null,
+      "reply_text": "Не выполнил действие: задачу для возврата в работу удалось определить, но автоматическое переоткрытие пока не реализовано.",
+      "target_reference": {
+        "task_id": 13,
+        "body": "купить молоко"
+      }
+    },
+    "delete": {
+      "intent_label": "delete_task",
+      "resolution_status": "pending_executor",
+      "downstream": null,
+      "reply_text": "Не выполнил действие: задачу для удаления удалось определить, но автоматическое удаление пока не реализовано.",
+      "target_reference": {
+        "task_id": 13,
+        "body": "купить молоко"
+      }
+    }
+  }
+}

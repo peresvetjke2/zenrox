@@ -7,6 +7,7 @@ module Interaction
       secret_token:,
       config: Platform::TelegramConfig.current,
       client: Platform::TelegramClient.new(config:),
+      routing_service: Routing::ProcessMessage,
       capture_service: Capture::ProcessMessage,
       retrieval_service: Retrieval::ListOpenTasks
     )
@@ -15,16 +16,18 @@ module Interaction
         secret_token:,
         config:,
         client:,
+        routing_service:,
         capture_service:,
         retrieval_service:
       ).call
     end
 
-    def initialize(payload:, secret_token:, config:, client:, capture_service:, retrieval_service:)
+    def initialize(payload:, secret_token:, config:, client:, routing_service:, capture_service:, retrieval_service:)
       @payload = normalize_payload(payload)
       @secret_token = secret_token
       @config = config
       @client = client
+      @routing_service = routing_service
       @capture_service = capture_service
       @retrieval_service = retrieval_service
     end
@@ -48,7 +51,7 @@ module Interaction
 
     private
 
-    attr_reader :capture_service, :client, :config, :payload, :retrieval_service, :secret_token
+    attr_reader :capture_service, :client, :config, :payload, :retrieval_service, :routing_service, :secret_token
 
     def chat_id
       message.dig("chat", "id")
@@ -62,10 +65,17 @@ module Interaction
     end
 
     def process_text_message
-      return retrieval_service.call.message if retrieval_command?
+      verdict = routing_service.call(text: message_text)
 
-      capture_result = capture_service.call(text: message_text, operation_id: operation_id)
-      format_capture_reply(capture_result)
+      case verdict.downstream
+      when :list_open_tasks
+        retrieval_service.call.message
+      when :capture_task
+        capture_result = capture_service.call(text: message_text, operation_id: operation_id)
+        format_capture_reply(capture_result)
+      else
+        verdict.reply_text
+      end
     end
 
     def message
@@ -89,10 +99,6 @@ module Interaction
 
     def private_message?
       message.dig("chat", "type") == "private"
-    end
-
-    def retrieval_command?
-      message_text == "задачи"
     end
   end
 end

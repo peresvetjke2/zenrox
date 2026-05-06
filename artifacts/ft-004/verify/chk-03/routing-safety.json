@@ -1,0 +1,23 @@
+{
+  "mixed": {
+    "intent_label": "none",
+    "resolution_status": "clarification_needed",
+    "downstream": null,
+    "reply_text": "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз.",
+    "target_reference": null
+  },
+  "capture_retrieval_mixed": {
+    "intent_label": "none",
+    "resolution_status": "clarification_needed",
+    "downstream": null,
+    "reply_text": "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз.",
+    "target_reference": null
+  },
+  "unsupported": {
+    "intent_label": "none",
+    "resolution_status": "unsupported",
+    "downstream": null,
+    "reply_text": "Не выполнил действие: запрос пока не поддерживается в этом канале.",
+    "target_reference": null
+  }
+}

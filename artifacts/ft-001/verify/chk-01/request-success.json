@@ -9,14 +9,14 @@
       "body": "купить молоко",
       "status": "open",
       "source_text": "купить молоко",
-      "operation_id": "6083249c-b94f-4842-8bf6-3c03400337f7"
+      "operation_id": "a985e9f9-cffa-4ab7-a2ef-a9f2a88ed5bb"
     },
     {
       "id": 2,
       "body": "позвонить маме",
       "status": "open",
       "source_text": "позвонить маме",
-      "operation_id": "308185cb-9f52-44a4-bbc7-470f90174c60"
+      "operation_id": "5f2500da-e2fd-4938-b00b-2fb4f2a02c18"
     }
   ]
 }
