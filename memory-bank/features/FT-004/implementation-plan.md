@@ -42,6 +42,71 @@ must_not_define:
 | `memory-bank/ops/development.md` | Canonical local setup/test commands | План должен ссылаться на реальные команды Rails/RSpec, а не на шаблонные предположения | Reuse documented `mise` + `bundle exec rspec` command |
 | `memory-bank/engineering/testing-policy.md` | Policy-level rules для deterministic routing coverage и manual-only gaps | `FT-004` полностью детерминирован на локальном backend и не должен уходить в manual-only verify | Mirror automated-first verify discipline |
 
+## Routing Decision Basis
+
+Первая реализация `FT-004` не использует AI/LLM-классификатор. Verdict строится детерминированно, в два прохода: `intent classification` и `target resolution`.
+
+### 1. Intent Classification
+
+Routing owner приводит вход к нормализованному виду: trim, lowercase, схлопывание повторных пробелов, удаление незначащей конечной пунктуации. После этого реплика проверяется по ordered-rule pipeline.
+
+Порядок правил:
+
+1. `mixed-intent guard`
+   Если в одной реплике обнаруживаются маркеры двух action-families, verdict сразу `clarification_needed`.
+   Примеры action-families: retrieval (`покажи`, `что у меня`, `какие задачи`), done (`закрой`, `сделано`, `выполнено`), reopen (`верни в работу`, `снова открой`), delete (`удали`, `удалить`), capture-fallback.
+
+2. `retrieval matcher`
+   Проверяются whitelist-паттерны retrieval-вопросов про открытые задачи.
+   Первый срез должен опираться на явный словарь/regex-паттерны вроде:
+   - `^задачи$`
+   - `^покажи( мне)? задачи$`
+   - `^что у меня( открыто)?\??$`
+   - `^какие у меня задачи\??$`
+   Если matched retrieval-паттерн ровно один, verdict: `intent_label = list_open_tasks`, `resolution_status = handoff`.
+
+3. `lifecycle matcher`
+   Проверяются verb-led паттерны для `mark_task_done`, `reopen_task`, `delete_task`.
+   Базовая схема:
+   - done: `^(закрой|отметь( как)? выполненн(ой|ым)?|сделано)\s+(.+)$`
+   - reopen: `^(верни( обратно)? в работу|переоткрой|снова открой)\s+(.+)$`
+   - delete: `^(удали|удалить)\s+(.+)$`
+   Если lifecycle-паттерн matched, classifier извлекает `target_candidate` из хвоста команды и передает его во второй проход `target resolution`.
+
+4. `capture fallback`
+   Если retrieval/lifecycle не matched, routing вызывает существующий `Capture::Admission` как subordinate rule.
+   Если admission говорит, что реплика поддерживается как single-task capture, verdict: `intent_label = capture_task`, `resolution_status = handoff`.
+   Если admission отвергает реплику и выше не сработал ни один supported intent, verdict уходит в `unsupported`.
+
+5. `unsupported fallback`
+   Если ни один matcher не сработал и capture admission не принял реплику, verdict: `intent_label = none`, `resolution_status = unsupported`.
+
+### 2. Target Resolution
+
+Для lifecycle intent первая реализация использует только exact-text resolution без AI и без semantic search.
+
+Правило:
+
+- из lifecycle-команды берется `target_candidate`;
+- выполняется exact string compare с `Task.body` после того же базового normalize pass;
+- если найден ровно один match, target считается safe-resolved;
+- если найдено 0 или >1 match, verdict = `clarification_needed`.
+
+Следствия:
+
+- `закрой купить молоко` -> `pending_executor`, только если в storage ровно одна задача `купить молоко`;
+- `удали купить молоко` при двух одинаковых задачах -> `clarification_needed`;
+- свободный поиск по фрагменту, semantic matching, shortlist numbering и context-local references не входят в `FT-004`.
+
+### 3. Why This Is Acceptable For FT-004
+
+Этот механизм deliberately narrow, но он соответствует границам `FT-004`:
+
+- дает concrete backend basis для verdict без AI;
+- сохраняет deterministic verify;
+- не залезает в scope `FT-005` (context-local references) и `FT-006` (real executor);
+- переиспользует existing `Capture::Admission` вместо дублирования capture-логики.
+
 ## Test Strategy
 
 CI для проекта пока не адаптирован, поэтому required CI suites фиксируются как `none`; локальный deterministic verify обязателен для всех `CHK-01`..`CHK-06`.
@@ -97,8 +162,8 @@ CI для проекта пока не адаптирован, поэтому re
 | Step ID | Actor | Implements | Goal | Touchpoints | Artifact | Verifies | Evidence IDs | Check command / procedure | Blocked by | Needs approval | Escalate if |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `STEP-01` | agent | `WS-1`, `WS-2` | Зафиксировать final local execution boundary: routing owner живет вне transport, `/capture` route остается canonical FT-001 path, Telegram становится thin conversational adapter | `memory-bank/features/FT-004/*`, `app/services/interaction/telegram_webhook.rb`, `app/controllers/captures_controller.rb` | Актуальный derived plan и clear boundary decisions | `none` | `none` | Doc review + changed-file inspection | `PRE-01`, `PRE-02` | none | Для реализации нужен новый public endpoint, новый client surface или изменение downstream contracts |
-| `STEP-02` | agent | `REQ-01`, `REQ-02`, `REQ-05`, `REQ-06`, `CTR-01`, `CTR-05`, `CTR-06` | Реализовать routing verdict model и owner service для taxonomy, ambiguity/unsupported handling, explicit no-handoff outcomes и user-facing routing reply payload для non-success verdicts | `app/services/routing/*` | Routing owner-layer, возвращающий deterministic verdict object и explicit reply payload вне downstream handlers | `CHK-01`, `CHK-03` | `EVID-01`, `EVID-03` | Routing service specs with stubbed downstream handlers | `STEP-01`, `PRE-03`, `OQ-01` | none | Verdict model начинает дублировать downstream payloads или требует transport-specific branches внутри owner service |
-| `STEP-03` | agent | `REQ-04`, `REQ-07`, `REQ-08`, `CTR-04` | Добавить lifecycle intent detection и safe exact-text target resolution без исполнения state transition | `app/services/routing/*`, `app/models/task.rb` при необходимости query helper-only changes | Lifecycle-aware routing branch с `pending_executor` и `clarification_needed` | `CHK-02`, `CHK-05`, `CHK-06` | `EVID-02`, `EVID-05`, `EVID-06` | Routing service specs on unique/missing/duplicate targets | `STEP-02`, `PRE-04`, `PRE-05`, `OQ-02` | none | Для safe target resolution требуется новый schema field, conversational numbering или hidden mutation |
+| `STEP-02` | agent | `REQ-01`, `REQ-02`, `REQ-05`, `REQ-06`, `CTR-01`, `CTR-05`, `CTR-06` | Реализовать routing verdict model и ordered-rule classifier: normalize pass, mixed-intent guard, retrieval matcher, capture fallback и explicit non-success reply payload | `app/services/routing/*`, `app/services/capture/admission.rb` | Routing owner-layer, возвращающий deterministic verdict object и explicit reply payload вне downstream handlers | `CHK-01`, `CHK-03` | `EVID-01`, `EVID-03` | Routing service specs with stubbed downstream handlers and fixed input corpus | `STEP-01`, `PRE-03`, `OQ-01` | none | Verdict model начинает дублировать downstream payloads или требует transport-specific branches внутри owner service |
+| `STEP-03` | agent | `REQ-04`, `REQ-07`, `REQ-08`, `CTR-04` | Добавить lifecycle verb matchers и safe exact-text target resolution без semantic search и без исполнения state transition | `app/services/routing/*`, `app/models/task.rb` при необходимости query helper-only changes | Lifecycle-aware routing branch с `pending_executor` и `clarification_needed` | `CHK-02`, `CHK-05`, `CHK-06` | `EVID-02`, `EVID-05`, `EVID-06` | Routing service specs on unique/missing/duplicate targets with exact-string corpus | `STEP-02`, `PRE-04`, `PRE-05`, `OQ-02` | none | Для safe target resolution требуется новый schema field, conversational numbering или hidden mutation |
 | `STEP-04` | agent | `REQ-03`, `CTR-02`, `CTR-03`, `CTR-04`, `EC-04`, `EC-05` | Встроить routing owner в Telegram conversational entrypoint и сохранить capture/retrieval semantics unchanged | `app/services/interaction/telegram_webhook.rb`, возможно `app/controllers/telegram_webhooks_controller.rb` без public contract drift | Updated Telegram orchestration with routing handoff and explicit non-success replies | `CHK-01`, `CHK-02`, `CHK-03`, `CHK-04`, `CHK-05`, `CHK-06` | `EVID-01`, `EVID-02`, `EVID-03`, `EVID-04`, `EVID-05`, `EVID-06` | Request specs for paraphrases, lifecycle pending and clarification/unsupported replies | `STEP-02`, `STEP-03`, `PRE-01` | none | Telegram layer снова начинает содержать intent taxonomy or user-facing lifecycle success simulation |
 | `STEP-05` | agent | `WS-3` | Добавить deterministic specs и structured evidence outputs по canonical paths `FT-004` для service- и transport-level coverage, включая passthrough existing capture/retrieval failure semantics | `spec/services/routing/*`, `spec/requests/telegram_webhooks_spec.rb`, `spec/support/evidence_helper.rb`, `artifacts/ft-004/verify/` | Green regression coverage и evidence artifacts | `CHK-01`, `CHK-02`, `CHK-03`, `CHK-04`, `CHK-05`, `CHK-06` | `EVID-01`, `EVID-02`, `EVID-03`, `EVID-04`, `EVID-05`, `EVID-06` | `BUNDLE_APP_CONFIG=.bundle mise exec ruby@3.4.8 -- bundle exec rspec` | `STEP-04` | none | Tests требуют live Telegram, nondeterministic corpus или не доказывают absence of unintended handoff |
 | `STEP-06` | agent | `CHK-01`, `CHK-02`, `CHK-03`, `CHK-04`, `CHK-05`, `CHK-06` | Провести отдельный simplify review после green tests и зафиксировать final evidence/handoff state | changed routing/telegram/spec files, feature package docs | Final code-quality pass и честный verify summary | `CHK-01`, `CHK-02`, `CHK-03`, `CHK-04`, `CHK-05`, `CHK-06` | `EVID-01`, `EVID-02`, `EVID-03`, `EVID-04`, `EVID-05`, `EVID-06` | Separate simplify review after functional verify | `STEP-05` | none | Simplify review выявляет, что routing abstraction избыточна или смешивает owner boundaries |
@@ -128,6 +193,7 @@ CI для проекта пока не адаптирован, поэтому re
 | `ER-04` | Exact-text target resolution окажется слишком хрупким и подтолкнет к внедрению context-local numbering внутри `FT-004` | Нарушится downstream split между `FT-004` и `FT-005` | Использовать only exact-text uniqueness сейчас; list-based refs оставить downstream | Для закрытия tests требуется numbering state или shortlist memory |
 | `ER-05` | Negative coverage не докажет отсутствие unintended handoff и ложного успеха | Safety claims `FT-004` останутся недоказанными | Явно проверять, какие downstream handlers были вызваны, и что `Task` storage не менялся | Tests ассертят только reply text без side-effect assertions |
 | `ER-06` | Routing non-success replies начнут формироваться частично в owner service, частично в Telegram adapter | Verdict contract станет неоднозначным и хуже переносимым на будущие conversational surfaces | Держать explicit routing reply payload рядом с routing verdict, а transport использовать только как delivery adapter | Clarification/unsupported wording зависит от конкретного transport branch-а |
+| `ER-07` | Rule-based matcher начнет бесконтрольно разрастаться случайными if-ами | Routing станет хрупким и трудно проверяемым | Держать matcher как ordered rule table с фиксированным corpus-driven coverage, а не ad hoc branching | Новая формулировка добавляется без обновления rule corpus и deterministic specs |
 
 ## Stop Conditions / Fallback
 
