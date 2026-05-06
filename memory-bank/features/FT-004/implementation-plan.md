@@ -44,34 +44,30 @@ must_not_define:
 
 ## Routing Decision Basis
 
-Первая реализация `FT-004` не использует AI/LLM-классификатор. Verdict строится детерминированно, в два прохода: `intent classification` и `target resolution`.
+Текущая реализация `FT-004` не использует AI/LLM-классификатор. Verdict строится детерминированно, в два прохода: `intent classification` и `target resolution`.
 
 ### 1. Intent Classification
 
-Routing owner приводит вход к нормализованному виду: trim, lowercase, схлопывание повторных пробелов, удаление незначащей конечной пунктуации. После этого реплика проверяется по ordered-rule pipeline.
+Routing owner приводит вход к нормализованному виду: trim, lowercase, схлопывание повторных пробелов, удаление шумовой пунктуации и edge-fillers вроде `пожалуйста` / `можешь`. После этого реплика проверяется по ordered-rule pipeline.
 
 Порядок правил:
 
 1. `mixed-intent guard`
-   Если в одной реплике обнаруживаются маркеры двух action-families, verdict сразу `clarification_needed`.
+   Если в одной реплике обнаруживаются маркеры двух action-families или нескольких action-clauses, verdict сразу `clarification_needed`.
    Примеры action-families: retrieval (`покажи`, `что у меня`, `какие задачи`), done (`закрой`, `сделано`, `выполнено`), reopen (`верни в работу`, `снова открой`), delete (`удали`, `удалить`), capture-fallback.
 
 2. `retrieval matcher`
-   Проверяются whitelist-паттерны retrieval-вопросов про открытые задачи.
-   Первый срез должен опираться на явный словарь/regex-паттерны вроде:
-   - `^задачи$`
-   - `^покажи( мне)? задачи$`
-   - `^что у меня( открыто)?\??$`
-   - `^какие у меня задачи\??$`
-   Если matched retrieval-паттерн ровно один, verdict: `intent_label = list_open_tasks`, `resolution_status = handoff`.
+   Проверяются rule-based retrieval-признаки: task-nouns (`задачи`, `дела`), retrieval-слова (`покажи`, `какие`, `список`, `мои`) и open-state markers (`открыто`, `открытые`).
+   Первый срез intentionally не пытается понимать произвольный русский язык, но должен поддерживать полезный корпус paraphrase-реплик вроде:
+   - `задачи`
+   - `покажи мне мои задачи`
+   - `что у меня открыто`
+   - `список открытых задач`
+   Если retrieval family определена безопасно, verdict: `intent_label = list_open_tasks`, `resolution_status = handoff`.
 
 3. `lifecycle matcher`
-   Проверяются verb-led паттерны для `mark_task_done`, `reopen_task`, `delete_task`.
-   Базовая схема:
-   - done: `^(закрой|отметь( как)? выполненн(ой|ым)?|сделано)\s+(.+)$`
-   - reopen: `^(верни( обратно)? в работу|переоткрой|снова открой)\s+(.+)$`
-   - delete: `^(удали|удалить)\s+(.+)$`
-   Если lifecycle-паттерн matched, classifier извлекает `target_candidate` из хвоста команды и передает его во второй проход `target resolution`.
+   Проверяются verb-led паттерны для `mark_task_done`, `reopen_task`, `delete_task`, включая небольшой словарь синонимов и форм (`закрой`, `заверши`, `готово`, `снова открой`, `убери` и т.д.).
+   Если lifecycle family matched, classifier извлекает `target_candidate` из хвоста команды, удаляет служебные object-слова вроде `задачу` и передает результат во второй проход `target resolution`.
 
 4. `capture fallback`
    Если retrieval/lifecycle не matched, routing вызывает существующий `Capture::Admission` как subordinate rule.
@@ -83,14 +79,15 @@ Routing owner приводит вход к нормализованному ви
 
 ### 2. Target Resolution
 
-Для lifecycle intent первая реализация использует только exact-text resolution без AI и без semantic search.
+Для lifecycle intent текущая реализация использует только exact-text resolution без AI и без semantic search.
 
 Правило:
 
 - из lifecycle-команды берется `target_candidate`;
-- выполняется exact string compare с `Task.body` после того же базового normalize pass;
+- если target пустой, слишком общий (`это`, `задачу`, `первую`, `все`) или не содержит достаточно конкретики, verdict сразу уходит в `clarification_needed` с explicit reason;
+- иначе выполняется exact string compare с `Task.body` после того же базового normalize pass;
 - если найден ровно один match, target считается safe-resolved;
-- если найдено 0 или >1 match, verdict = `clarification_needed`.
+- если найдено 0 или >1 match, verdict = `clarification_needed` с structured reason.
 
 Следствия:
 

@@ -8,6 +8,7 @@
     "done": {
       "intent_label": "mark_task_done",
       "resolution_status": "pending_executor",
+      "clarification_reason": null,
       "downstream": null,
       "reply_text": "Не выполнил действие: задачу для завершения удалось определить, но автоматическое закрытие пока не реализовано.",
       "target_reference": {
@@ -18,6 +19,7 @@
     "reopen": {
       "intent_label": "reopen_task",
       "resolution_status": "pending_executor",
+      "clarification_reason": null,
       "downstream": null,
       "reply_text": "Не выполнил действие: задачу для возврата в работу удалось определить, но автоматическое переоткрытие пока не реализовано.",
       "target_reference": {
@@ -28,6 +30,7 @@
     "delete": {
       "intent_label": "delete_task",
       "resolution_status": "pending_executor",
+      "clarification_reason": null,
       "downstream": null,
       "reply_text": "Не выполнил действие: задачу для удаления удалось определить, но автоматическое удаление пока не реализовано.",
       "target_reference": {

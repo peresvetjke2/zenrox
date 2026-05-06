@@ -70,7 +70,7 @@ RSpec.describe "POST /telegram/webhook", type: :request do
 
     expect do
       post "/telegram/webhook",
-        params: telegram_update(text: "что у меня открыто?", update_id: 1100),
+        params: telegram_update(text: "покажи мне мои задачи", update_id: 1100),
         as: :json,
         headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
     end.not_to change(Task, :count)
@@ -88,7 +88,7 @@ RSpec.describe "POST /telegram/webhook", type: :request do
     write_evidence(
       "chk-04/telegram-retrieval-handoff.json",
       {
-        request: telegram_update(text: "что у меня открыто?", update_id: 1100),
+        request: telegram_update(text: "покажи мне мои задачи", update_id: 1100),
         open_task_bodies: Task.open_for_retrieval.pluck(:body),
         reply: expected_reply
       },
@@ -107,7 +107,7 @@ RSpec.describe "POST /telegram/webhook", type: :request do
 
     expect do
       post "/telegram/webhook",
-        params: telegram_update(text: "закрой купить молоко", update_id: 1200),
+        params: telegram_update(text: "можешь закрыть задачу купить молоко пожалуйста", update_id: 1200),
         as: :json,
         headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
     end.not_to change(Task, :count)
@@ -122,7 +122,7 @@ RSpec.describe "POST /telegram/webhook", type: :request do
     write_evidence(
       "chk-05/telegram-lifecycle-pending.json",
       {
-        request: telegram_update(text: "закрой купить молоко", update_id: 1200),
+        request: telegram_update(text: "можешь закрыть задачу купить молоко пожалуйста", update_id: 1200),
         before: before_snapshot,
         after: Task.order(:id).pluck(:id, :body, :status),
         reply: "Не выполнил действие: задачу для завершения удалось определить, но автоматическое закрытие пока не реализовано."
@@ -143,6 +143,21 @@ RSpec.describe "POST /telegram/webhook", type: :request do
     expect(client).to have_received(:send_message).with(
       chat_id: 42,
       text: "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз."
+    )
+  end
+
+  it "returns clarification for missing lifecycle target without side effects" do
+    expect do
+      post "/telegram/webhook",
+        params: telegram_update(text: "готово", update_id: 1205),
+        as: :json,
+        headers: { "X-Telegram-Bot-Api-Secret-Token" => "test-secret" }
+    end.not_to change(Task, :count)
+
+    expect(response).to have_http_status(:no_content)
+    expect(client).to have_received(:send_message).with(
+      chat_id: 42,
+      text: "Не выполнил действие: уточните, какую задачу нужно завершить."
     )
   end
 

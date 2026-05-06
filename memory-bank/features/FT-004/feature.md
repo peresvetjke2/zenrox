@@ -39,13 +39,13 @@ must_not_define:
 ### Scope
 
 - `REQ-01` Фича вводит ограниченную и явную taxonomy поддерживаемых task-intents первого routing layer: `capture_task`, `list_open_tasks`, `mark_task_done`, `reopen_task`, `delete_task`.
-- `REQ-02` Routing-слой принимает одну текстовую реплику из текущего разговорного канала и выдает ровно один routing verdict с машиночитаемыми `intent_label` и `resolution_status` из набора `handoff`, `clarification_needed`, `unsupported`, `pending_executor`; если безопасно выбрать один supported intent нельзя, `intent_label` должен быть `none`.
+- `REQ-02` Routing-слой принимает одну текстовую реплику из текущего разговорного канала и выдает ровно один routing verdict с машиночитаемыми `intent_label` и `resolution_status` из набора `handoff`, `clarification_needed`, `unsupported`, `pending_executor`; если безопасно выбрать один supported intent нельзя, `intent_label` должен быть `none`, а для `clarification_needed` verdict должен уметь явно указать machine-readable причину неоднозначности или недоопределенности.
 - `REQ-03` Для capture- и retrieval-intents routing слой переиспользует уже существующие downstream capability contracts `FT-001` и `FT-002` и не расширяет их product semantics.
 - `REQ-04` Lifecycle-intents (`mark_task_done`, `reopen_task`, `delete_task`) распознаются как отдельный класс и не должны по умолчанию проваливаться в capture-path, retrieval-path или silent no-op, даже если их полное выполнение остается downstream scope.
 - `REQ-05` Если одна реплика разумно соответствует нескольким intents, нескольким возможным task targets или mixed-intent сценарию, routing-слой не выполняет действие с изменением состояния и возвращает clarification verdict с указанием, что именно нужно уточнить.
 - `REQ-06` Unsupported или выходящий за scope запрос получает явный non-success verdict, который не создает впечатления, что assistant что-то сохранил, завершил, вернул в работу или удалил.
 - `REQ-07` Для side-effecting lifecycle-intents handoff допустим только когда routing verdict содержит ровно один безопасно resolved target reference по правилам `PRD-002`; иначе verdict обязан оставаться `clarification_needed`.
-- `REQ-08` Фича задает routing outcome contract, достаточный для последующих `FT-005` и `FT-006`: downstream-обработчик может опереться на `intent_label`, `resolution_status`, исходную реплику и optional structured target reference, не переопределяя базовую taxonomy.
+- `REQ-08` Фича задает routing outcome contract, достаточный для последующих `FT-005` и `FT-006`: downstream-обработчик может опереться на `intent_label`, `resolution_status`, исходную реплику, optional structured target reference и optional structured clarification reason, не переопределяя базовую taxonomy.
 
 ### Non-Scope
 
@@ -84,7 +84,7 @@ must_not_define:
 
 ### Solution
 
-Фича добавляет узкий слой маршрутизации намерений между входной текстовой репликой и downstream-возможностью работы с задачами. Слой классифицирует сообщение в одну из ограниченных intent-категорий, затем выставляет отдельный `resolution_status` и возвращает нормализованный verdict object. После этого он либо передает управление существующему capture/retrieval-обработчику, либо останавливается на `clarification_needed`, `unsupported` или `pending_executor`. Главный trade-off — сознательно узкая полнота распознавания ради предсказуемости и защиты от ложных побочных действий.
+Фича добавляет узкий слой маршрутизации намерений между входной текстовой репликой и downstream-возможностью работы с задачами. Слой сначала нормализует текст, затем детерминированно распознает ограниченные intent-families по rule-based признакам и возвращает нормализованный verdict object с отдельным `resolution_status`; для clarification-path verdict также может нести structured reason вроде `mixed_intent`, `missing_target` или `ambiguous_target`. После этого он либо передает управление существующему capture/retrieval-обработчику, либо останавливается на `clarification_needed`, `unsupported` или `pending_executor`. Главный trade-off — сознательно узкая полнота распознавания ради предсказуемости и защиты от ложных побочных действий.
 
 ### Change Surface
 
@@ -110,7 +110,7 @@ must_not_define:
 
 | Contract ID | Input / Output | Producer / Consumer | Notes |
 | --- | --- | --- | --- |
-| `CTR-01` | `text message + minimal conversational context -> routing verdict{intent_label, resolution_status, optional target_reference}` | interaction -> routing layer | Verdict обязан содержать ровно один intent label из taxonomy `REQ-01` либо `none`, и ровно один `resolution_status` |
+| `CTR-01` | `text message + minimal conversational context -> routing verdict{intent_label, resolution_status, optional target_reference, optional clarification_reason}` | interaction -> routing layer | Verdict обязан содержать ровно один intent label из taxonomy `REQ-01` либо `none`, и ровно один `resolution_status`; для `clarification_needed` допускается structured reason, объясняющая ambiguity или missing target |
 | `CTR-02` | `routing verdict(capture_task) -> FT-001 capture request` | routing layer -> capture capability | Routing не расширяет admission semantics single-task capture |
 | `CTR-03` | `routing verdict(list_open_tasks) -> FT-002 retrieval request` | routing layer -> retrieval capability | Routing может распознать paraphrase, но retrieval result contract остается owner-ом `FT-002` |
 | `CTR-04` | `routing verdict(lifecycle-intent) -> lifecycle executor or non-success response` | routing layer -> downstream lifecycle capability / user-facing response | `handoff` допустим только при единственном resolved target; до `FT-006` статус `pending_executor` не должен считаться успешным изменением task state |

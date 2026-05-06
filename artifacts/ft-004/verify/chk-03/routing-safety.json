@@ -2,6 +2,7 @@
   "mixed": {
     "intent_label": "none",
     "resolution_status": "clarification_needed",
+    "clarification_reason": "mixed_intent",
     "downstream": null,
     "reply_text": "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз.",
     "target_reference": null
@@ -9,6 +10,7 @@
   "capture_retrieval_mixed": {
     "intent_label": "none",
     "resolution_status": "clarification_needed",
+    "clarification_reason": "mixed_intent",
     "downstream": null,
     "reply_text": "Не выполнил действие: в одном сообщении получилось несколько запросов. Отправьте одну команду за раз.",
     "target_reference": null
@@ -16,8 +18,25 @@
   "unsupported": {
     "intent_label": "none",
     "resolution_status": "unsupported",
+    "clarification_reason": null,
     "downstream": null,
     "reply_text": "Не выполнил действие: запрос пока не поддерживается в этом канале.",
+    "target_reference": null
+  },
+  "missing_target": {
+    "intent_label": "mark_task_done",
+    "resolution_status": "clarification_needed",
+    "clarification_reason": "missing_target",
+    "downstream": null,
+    "reply_text": "Не выполнил действие: уточните, какую задачу нужно завершить.",
+    "target_reference": null
+  },
+  "generic_target": {
+    "intent_label": "mark_task_done",
+    "resolution_status": "clarification_needed",
+    "clarification_reason": "missing_target",
+    "downstream": null,
+    "reply_text": "Не выполнил действие: уточните, какую задачу нужно завершить.",
     "target_reference": null
   }
 }

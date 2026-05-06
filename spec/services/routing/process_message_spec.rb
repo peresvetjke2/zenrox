@@ -6,7 +6,8 @@ RSpec.describe Routing::ProcessMessage do
       corpus = {
         "купить молоко" => { intent_label: :capture_task, resolution_status: :handoff, downstream: :capture_task },
         "что у меня открыто?" => { intent_label: :list_open_tasks, resolution_status: :handoff, downstream: :list_open_tasks },
-        "покажи задачи" => { intent_label: :list_open_tasks, resolution_status: :handoff, downstream: :list_open_tasks }
+        "покажи мне мои задачи" => { intent_label: :list_open_tasks, resolution_status: :handoff, downstream: :list_open_tasks },
+        "список открытых задач" => { intent_label: :list_open_tasks, resolution_status: :handoff, downstream: :list_open_tasks }
       }
 
       results = corpus.each_with_object({}) do |(text, expected), memo|
@@ -35,8 +36,8 @@ RSpec.describe Routing::ProcessMessage do
       )
 
       done_verdict = described_class.call(text: "закрой купить молоко")
-      reopen_verdict = described_class.call(text: "верни в работу купить молоко")
-      delete_verdict = described_class.call(text: "удали купить молоко")
+      reopen_verdict = described_class.call(text: "снова открой задачу купить молоко")
+      delete_verdict = described_class.call(text: "пожалуйста убери задачу купить молоко")
 
       [ done_verdict, reopen_verdict, delete_verdict ].each do |verdict|
         expect(verdict.resolution_status).to eq(:pending_executor)
@@ -90,18 +91,29 @@ RSpec.describe Routing::ProcessMessage do
       capture_retrieval_mixed = described_class.call(text: "добавь купить молоко и покажи задачи")
       unsupported_verdict = described_class.call(text: "что я говорил про корову месяц назад?")
       delete_verdict = described_class.call(text: "удали купить молоко")
+      missing_target_verdict = described_class.call(text: "готово")
+      generic_target_verdict = described_class.call(text: "закрой задачу")
 
       expect(mixed_verdict).to have_attributes(intent_label: :none, resolution_status: :clarification_needed)
+      expect(mixed_verdict.clarification_reason).to eq(:mixed_intent)
       expect(capture_retrieval_mixed).to have_attributes(intent_label: :none, resolution_status: :clarification_needed)
+      expect(capture_retrieval_mixed.clarification_reason).to eq(:mixed_intent)
       expect(unsupported_verdict).to have_attributes(intent_label: :none, resolution_status: :unsupported)
       expect(delete_verdict).to have_attributes(intent_label: :delete_task, resolution_status: :clarification_needed)
+      expect(delete_verdict.clarification_reason).to eq(:ambiguous_target)
+      expect(missing_target_verdict).to have_attributes(intent_label: :mark_task_done, resolution_status: :clarification_needed)
+      expect(missing_target_verdict.clarification_reason).to eq(:missing_target)
+      expect(generic_target_verdict).to have_attributes(intent_label: :mark_task_done, resolution_status: :clarification_needed)
+      expect(generic_target_verdict.clarification_reason).to eq(:missing_target)
 
       write_evidence(
         "chk-03/routing-safety.json",
         {
           mixed: verdict_snapshot(mixed_verdict),
           capture_retrieval_mixed: verdict_snapshot(capture_retrieval_mixed),
-          unsupported: verdict_snapshot(unsupported_verdict)
+          unsupported: verdict_snapshot(unsupported_verdict),
+          missing_target: verdict_snapshot(missing_target_verdict),
+          generic_target: verdict_snapshot(generic_target_verdict)
         },
         feature: "ft-004"
       )
@@ -120,6 +132,7 @@ RSpec.describe Routing::ProcessMessage do
       {
         intent_label: verdict.intent_label,
         resolution_status: verdict.resolution_status,
+        clarification_reason: verdict.clarification_reason,
         downstream: verdict.downstream,
         reply_text: verdict.reply_text,
         target_reference: verdict.target_reference

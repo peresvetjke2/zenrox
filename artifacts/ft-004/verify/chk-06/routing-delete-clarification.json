@@ -12,6 +12,7 @@
   "verdict": {
     "intent_label": "delete_task",
     "resolution_status": "clarification_needed",
+    "clarification_reason": "ambiguous_target",
     "downstream": null,
     "reply_text": "Не выполнил действие: уточните точную задачу для удаления.",
     "target_reference": null

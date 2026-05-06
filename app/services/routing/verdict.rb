@@ -1,11 +1,21 @@
 module Routing
   class Verdict
-    attr_reader :downstream, :intent_label, :original_text, :reply_text, :resolution_status, :target_reference
+    attr_reader :clarification_reason, :downstream, :intent_label, :original_text, :reply_text, :resolution_status,
+                :target_reference
 
-    def initialize(intent_label:, resolution_status:, original_text:, downstream: nil, reply_text: nil, target_reference: nil)
+    def initialize(
+      intent_label:,
+      resolution_status:,
+      original_text:,
+      clarification_reason: nil,
+      downstream: nil,
+      reply_text: nil,
+      target_reference: nil
+    )
       @intent_label = intent_label
       @resolution_status = resolution_status
       @original_text = original_text
+      @clarification_reason = clarification_reason
       @downstream = downstream
       @reply_text = reply_text
       @target_reference = target_reference
@@ -20,11 +30,12 @@ module Routing
       )
     end
 
-    def self.clarification_needed(intent_label:, original_text:, reply_text:, target_reference: nil)
+    def self.clarification_needed(intent_label:, original_text:, reply_text:, clarification_reason:, target_reference: nil)
       new(
         intent_label:,
         resolution_status: :clarification_needed,
         original_text:,
+        clarification_reason:,
         reply_text:,
         target_reference:
       )

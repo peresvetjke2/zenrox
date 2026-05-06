@@ -9,7 +9,12 @@
     "resolution_status": "handoff",
     "downstream": "list_open_tasks"
   },
-  "покажи задачи": {
+  "покажи мне мои задачи": {
+    "intent_label": "list_open_tasks",
+    "resolution_status": "handoff",
+    "downstream": "list_open_tasks"
+  },
+  "список открытых задач": {
     "intent_label": "list_open_tasks",
     "resolution_status": "handoff",
     "downstream": "list_open_tasks"
